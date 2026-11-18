@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Math Duel">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Triods Math Duel</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#000000;--surface:#0a1118;--ink:#ffffff;--muted:#8fa6b3;--line:#12384a;
+  --accent:#00d1ff;--accent-ink:#00131a;
+  --p1:#00d1ff;--p1-soft:#062634;--p2:#ffffff;--p2-soft:#1a2028;
+  --ok:#22c55e;--bad:#ef4444;--warn:#fbbf24;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  overscroll-behavior:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
+input{-webkit-appearance:none;appearance:none}
+html{-webkit-text-size-adjust:100%}
+.screen{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column}
+
+/* ---------- setup ---------- */
+.brand{display:flex;align-items:center;gap:12px;margin:2px 0 6px}
+.logo{height:56px;width:auto;display:block}
+.bname{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.tag{font-size:12px;color:var(--accent);margin-top:2px}
+h1{color:var(--accent)}
+.dialog .logo{height:44px;margin:0 auto 10px}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 12px}
+.wrap{max-width:560px;margin:0 auto}
+h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 14px;line-height:1.4}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 b{color:var(--ink);letter-spacing:0;text-transform:none;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.grid6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.chip{min-height:46px;padding:0 12px;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;font-weight:650;font-size:15px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.row .chip{flex:1 1 auto}
+.concepts .chip{flex:0 1 auto;min-height:42px;font-size:14px;text-align:left}
+.concepts .chip[aria-pressed="true"]::before{content:"✓ "}
+.link{background:none;border:0;color:var(--accent);font-weight:650;font-size:13px;padding:6px 4px;min-height:32px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.names label{display:block;font-size:12px;font-weight:650;margin-bottom:4px}
+.names label.a{color:var(--p1)} .names label.b{color:var(--p2)}
+.names input{width:100%;min-height:46px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);padding:0 12px;font:inherit;font-size:16px;-webkit-user-select:text;user-select:text}
+.startbar{padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.start{display:block;width:100%;max-width:560px;margin:0 auto;min-height:56px;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-size:19px;font-weight:800}
+.startbar small{display:block;text-align:center;color:var(--muted);font-size:12px;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30}
+
+/* ---------- game ---------- */
+.panel{flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 12px 12px;background:var(--ps)}
+.panel.p1{--pc:var(--p1);--ps:var(--p1-soft)}
+.panel.p2{--pc:var(--p2);--ps:var(--p2-soft);transform:rotate(180deg)}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px}
+.pname{font-weight:800;color:var(--pc);font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%}
+.ptime{font-variant-numeric:tabular-nums;font-weight:750;font-size:17px;color:var(--muted)}
+.pscore{min-width:44px;text-align:center;background:var(--pc);color:#00131a;border-radius:999px;padding:3px 14px;font-weight:800;font-size:20px;font-variant-numeric:tabular-nums}
+.qwrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:4px 4px}
+.qtext{font-weight:800;font-size:clamp(26px,7.2vmin,46px);line-height:1.2;white-space:pre-wrap;word-break:break-word;letter-spacing:-.3px}
+.qtext.long{font-size:clamp(20px,5.2vmin,32px)}
+.qtext.huge{font-size:clamp(64px,22vmin,130px);color:var(--pc)}
+.pstatus{min-height:24px;font-size:16px;font-weight:700;color:var(--muted)}
+.pstatus.good{color:var(--ok)} .pstatus.bad{color:var(--bad)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{min-height:clamp(58px,10.5vh,92px);border:2.5px solid var(--pc);background:var(--surface);border-radius:16px;font-weight:800;font-size:clamp(20px,5.2vmin,32px);font-variant-numeric:tabular-nums;padding:4px 6px;transition:transform .06s}
+.opt:active:not(:disabled){transform:scale(.96)}
+.opt:disabled{opacity:.5}
+.opt.correct{background:var(--ok);border-color:var(--ok);color:#04210f;opacity:1}
+.opt.wrong{background:var(--bad);border-color:var(--bad);color:#fff;opacity:1}
+.stats{display:flex;flex-direction:column;gap:8px;font-size:18px;text-align:center;color:var(--muted);padding-bottom:6px}
+.stats b{color:var(--ink);font-size:22px}
+.panel.result .opts{display:none}
+.panel:not(.result) .stats{display:none}
+.mid{position:relative;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--surface);border-block:1px solid var(--line);flex:none}
+.bar{position:absolute;left:0;right:0;top:0;height:6px;background:var(--line)}
+.bar i{display:block;height:100%;width:100%;background:var(--accent)}
+.bar i.low{background:var(--bad)}
+.qn{font-size:14px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.qn.flip{transform:rotate(180deg)}
+.pause{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:48px;height:38px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:14px;letter-spacing:-2px}
+.resbtns{display:flex;gap:10px;margin:0 auto}
+.resbtns button{min-height:38px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-weight:700;font-size:14px}
+.resbtns button.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(5,8,20,.62);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
+.dialog{background:var(--surface);border-radius:20px;padding:22px;width:100%;max-width:340px;text-align:center}
+.dialog h3{margin:0 0 14px;font-size:22px}
+.dialog button{display:block;width:100%;min-height:50px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);font-weight:700;font-size:16px;margin-top:10px}
+.dialog button.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+</style>
+</head>
+<body>
+
+<main id="setup" class="screen">
+  <div class="scroll"><div class="wrap">
+    <div class="brand"><img class="logo" alt="Triods Tuition logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAAB4CAIAAAA1wpi+AAAHGUlEQVR42u3d728UxxnA8e/MzmFi419n7PPPkjgioSEhSWmUUqG+7T9QtbRN0kYUKDgYjMHExHXrOBhSCA2pSxJizkiobRRFpUKJXNsIieZ11KjK+zatIlWqL4SfEdzMTl/s2TWhNbd7d/beald+t+fTfvw8OzvzzOxYEMlDCAAh2X88ojwpAQ6d4S8mkjwHYDjNp5YL/4oob2iMTywfGS7ORJE3+CafWD68xceWizMyUveeaxg4weatZLI4yjsjI8ITEmM4MMqW7cxonMTcSRmd6O0/zrYuMhql5p+XUbj3jGHfMXZ0z0/OSAhzPE3vUZ7rIXNbcpa/cI63+2W6e8noO6NXzsI5XvcIPX0L8MpW6PGee4k9/WQ0Ui302fLjOQqj2THE3he4pJEKsdDHVXllJ46D0WwbpG+QSxrhLMwrtxh6vC0D9A/N8sTdM7rMknNzPweG8+eVj1ApjObZPgZG+NwHr0yEjkJrntnLz17msj9eOQi96D3Vwy+OcEWDP17ohUqhNT/oZugYV0wAXriFTgKt2dTF8HGuGpABeCEWSonJ8t3tvDTKteC8sAqlxFq+s42RE1w32OA8QBDCXrW11NQz9U+qK7llc6VBv4e1KEEmI8Pbt751E1cUEr2QtzQWIYqSYVGptcXCWBgLY2EsjIWxMBbGwlgYC2NhaQ9V4ul1EXCML6QMu1BKXBdrA/5xbt5wXYsFS+AhtPejSsira6S2DuP6GqoLIXCtranrrHREBThBa0kWFG5FKYTeFMpjG/nNu1QmcX3Uu4RAgjGMdrC1SbngBK1kWIsQZOqLLvR46zYw9j4rargJjo+ynxQYzWuddCWxhRcCBQlRXKHHe/hJxiaoquGGwXFwbZ7Rc0BrXm1nZxJtcYSwFFLJQoBbzJbG4z30dU5NUF3LFy6O89+lnneNHmjDKx3sWom2KEExZoxz31w83pqvkZ6ktp4vXByZ/3U4YAy/bGdP8XhFfeJ7vAcfIz1JXZIbxh9PoA2H2tjXWHxeMYQeb/U60pMkV+buPT/R05qDbTzfVBJewUKPd//DjE+xssk3T6ANB9s40OQ1LWHrl3q8zrWMT9OY4rp/nmZ4Hk+Eq+ft8e5dw/gUqWau+eAxm5xDrQzMJmeJeEGF3rqWVQ8wPk1LK9cNykf0lEAbBlsZTJUwOQsQOg7G0LGa8fO0tfuK3lxyDrQwlCptcgYVery2Tsanae/gqs/kFGhNfwvDzYvE8yn0eK33cfo8q1Zx1UdyeuM0rRlsYWQReX7Gh95i45ZVjE9z731c8Xfv5ZKzdfGS02cMpYNrSHWQnqbzfl+825Jz0Xn5CR0H19DUTvo8q1f75SmB1uxvXuzkzFvoJefKVtJTPPgAl3UA3t5mDrcsDe9uQi85G5pJT7Hmq1z+8qsM+fD2pDjSglki3oJCj5dMcWqKtWuD8XqbeaUVY5FiyVbuyIV49Y2MTfLII3zun5dld4qjLUvM+z9Cj1fbwNgkjz7ql5cQaM3OZn7VuvS8/yX03iGqSTI2yeOPB4heNktXE6+Fg3eHUDq4LtX1vPUn1q/nkv/oZflpitG2sPBuF3rRW1HLyQmeeCIAL6vZ0sTrYeLNE3pV6qoa3pzgG0/65XnJubmRk+3h4s0KPV5lNW+8zzc38FmQ5PxxI2Ph4wEyx7unitffY+PGALxslqcbGe/ADR8PULguyyoYPcfGb/HvmyQUrsk/AbKaTQ2cbiVrchXYYi4xFcHnnrx5CwOKhhTHz/LtDcxAsiL/b5QC12VLAyeTpZxqFQX9Yq1E8dRuli/j3EVfo3UJrmXdPfyojQ9KsZxaJXhoPUoVEkMpuXwNkZtzDTp81iUK3fIqJv9BMknWBlwIbS0JQSajvCnlYJehKdZS5TtmuSsrc62WLGCGVEBuds26ga/HWmwphK4br8WIhbEwFsbCWBgLY2EsjIWxMBbGwlhYpMNarJVR5jmCxLKICl2bK1QPb1XR5CmLgh3f48LZyAldFwcSgu5NXDiLSqioRc+BZZJd32fqHZRCZ2W0eJYKSc8PmXwblUBrym03s7vxlkv2PMPE71AJdDZCz0NrkS7LJXuf5b0z83mRiKG1CJdKh30/4dzpL/HKX+jxqhz6tvLHU3fyyjxL53jPb+cPb3ktZ4T6pdaCywqHA128+0Zu26zo9Lw9XrXDQDfvnEApTDZCYwtrwVDjMNjD73+d29MtOqOnHE/x815++2puw8HojA+txRpqFS/2ceZYbsPB6IyAPV6dYrif00fyiV5ZCT1eveLgC6QP597YiU4VY443MsjYCI7CmHC8j1/EB0O94vAQJ4d9RY9Q/wOVugY++IyPLR/e4u+WrhcBHBXGbRCDC/+c4a+Gv1l2HowQb77w4gyfWnYdyvFENHhzwtokHxl6j0YrevOFLV9h58jsCsWCeP8BRm/Et6T2VgkAAAAASUVORK5CYII="><div><div class="bname">Triods Tuition</div><div class="tag">Where Dreams Are Nurtured and Realized!</div></div></div>
+    <h1>Math Duel</h1>
+    <p class="sub">Lay the phone flat between two players, one on each side.</p>
+
+    <div class="card">
+      <h2>Players</h2>
+      <div class="names">
+        <div><label class="a" for="n0">Bottom player</label><input id="n0" maxlength="12" autocomplete="off"></div>
+        <div><label class="b" for="n1">Top player</label><input id="n1" maxlength="12" autocomplete="off"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Game mode</h2>
+      <div class="row" id="modeRow"></div>
+      <p class="sub" id="modeHelp" style="margin:10px 0 0;font-size:13px"></p>
+    </div>
+
+    <div class="card">
+      <h2>Standard <b id="clsLabel"></b></h2>
+      <div class="grid6" id="clsGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Hardness</h2>
+      <div class="row" id="lvlRow"></div>
+    </div>
+
+    <div class="card" id="cardLen">
+      <h2>Marathon length <b id="lenLabel"></b></h2>
+      <div class="row" id="lenRow"></div>
+    </div>
+
+    <div class="card" id="cardTime">
+      <h2>Time per question <b id="timeLabel"></b></h2>
+      <div class="row" id="timeRow"></div>
+    </div>
+
+    <div class="card" id="cardCount">
+      <h2>Questions in a game</h2>
+      <div class="row" id="countRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Concepts <b id="conCount"></b></h2>
+      <div class="row" style="margin-bottom:8px"><button class="link" id="selAll">Select all</button><button class="link" id="selNone">Clear</button></div>
+      <div class="row concepts" id="conRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Options</h2>
+      <div class="row">
+        <button class="chip" id="optPen" aria-pressed="false">Wrong answer: &minus;1 point</button>
+        <button class="chip" id="optSnd" aria-pressed="true">Sound</button>
+      </div>
+    </div>
+  </div></div>
+  <div class="startbar">
+    <button class="start" id="startBtn">Start game</button>
+    <small id="sumLine"></small>
+  </div>
+</main>
+
+<main id="game" class="screen" hidden>
+  <section class="panel p2" id="panel1"></section>
+  <div class="mid" id="mid">
+    <div class="bar" id="barWrap"><i id="barFill"></i></div>
+    <span class="qn" id="qn0"></span>
+    <button class="pause" id="pauseBtn" aria-label="Pause">&#10074;&#10074;</button>
+    <span class="qn flip" id="qn1"></span>
+    <div class="resbtns" id="resBtns" hidden>
+      <button id="againBtn" class="main">Play again</button>
+      <button id="setBtn">Settings</button>
+    </div>
+  </div>
+  <section class="panel p1" id="panel0"></section>
+</main>
+
+<div class="overlay" id="pauseOv" hidden>
+  <div class="dialog">
+    <img class="logo" alt="" src="data:image/png;base64,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">
+    <h3>Paused</h3>
+    <button class="main" id="resumeBtn">Resume</button>
+    <button id="quitBtn">Quit to settings</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+//#GEN-START
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹⁻', SUB='₀₁₂₃₄₅₆₇₈₉';
+const sup=n=>String(n).replace(/[0-9\-]/g,c=>SUP['0123456789-'.indexOf(c)]);
+const sub=n=>String(n).replace(/[0-9]/g,c=>SUB[+c]);
+const fmt=n=>Math.round(n).toLocaleString('en-IN');
+const LV=[0.5,1,1.5,2.5];
+const BASE=[0,10,50,200,1000,5000,10000,20000,50000,99999,99999,99999,99999];
+const mag=(c,h)=>Math.max(5,Math.round(BASE[c]*LV[h]));
+const disp=(v,dec)=>dec?v.toFixed(dec):fmt(v);
+const poly=ts=>{let s='';ts.forEach(([c,v])=>{if(c===0)return;const a=Math.abs(c);const co=(a===1&&v)?'':a;const body=co+v;if(!s)s=(c<0?'−':'')+body;else s+=(c<0?' − ':' + ')+body;});return s||'0';};
+const sg=n=>(n<0?'− ':'+ ')+Math.abs(n);
+
+function numQ(q,ans,dec=0){
+  const step=Math.pow(10,-dec);
+  const key=v=>disp(v,dec);
+  const A=key(ans);
+  const seen=new Set([A]);
+  const rel=Math.max(2,Math.round(Math.abs(ans)/step*0.1))*step;
+  const ds=shuffle([1,-1,2,-2,3,-3,10,-10,5,-5].map(d=>d*step).concat([rel,-rel,2*rel,-2*rel]));
+  const out=[];
+  for(const d of ds){
+    const v=Math.round((ans+d)/step)*step;
+    if(ans>=0&&v<0)continue;
+    const k=key(v);
+    if(seen.has(k))continue;
+    seen.add(k);out.push(k);
+    if(out.length===3)break;
+  }
+  let n=4;
+  while(out.length<3){
+    const v=Math.round((ans+n*step*(Math.random()<.5?1:-1))/step)*step;n++;
+    if(ans>=0&&v<0)continue;
+    const k=key(v);if(seen.has(k))continue;seen.add(k);out.push(k);
+  }
+  return {q,ans:A,wrong:out};
+}
+function txtQ(q,ans,pool){
+  const w=shuffle(pool.filter(x=>x!==ans)).slice(0,3);
+  return {q,ans,wrong:w};
+}
+const frS=(n,d)=>{const g=gcd(n,d);n/=g;d/=g;return d===1?String(n):n+'/'+d;};
+function fracQ(q,n,d,hint){
+  const g=gcd(n,d);n/=g;d/=g;
+  const A=frS(n,d);
+  const cands=[[n+1,d],[n-1,d],[n,d+1],[n,d-1],[n+d,d],[d,n],[n+2,d],[n,d+2],[n*2,d+1]].concat(hint||[]);
+  const out=[],seen=new Set([A]);
+  for(const [a,b] of shuffle(cands)){
+    if(a<=0||b<=0)continue;
+    if(a*d===n*b)continue;
+    const s=frS(a,b);
+    if(seen.has(s))continue;
+    seen.add(s);out.push(s);
+    if(out.length===3)break;
+  }
+  let k=3;
+  while(out.length<3){const s=frS(n+k,d+k+1);k++;if(!seen.has(s)&&(n+k-1)*d!==n*(d+k)){seen.add(s);out.push(s);}}
+  return {q,ans:A,wrong:out};
+}
+
+const GEN={
+add:(c,h)=>{const m=mag(c,h);const a=R(1,m),b=R(1,m);return numQ(`${fmt(a)} + ${fmt(b)}`,a+b);},
+sub:(c,h)=>{const m=mag(c,h);const a=R(2,m),b=R(1,a-1);return numQ(`${fmt(a)} − ${fmt(b)}`,a-b);},
+mul:(c,h)=>{
+  const f=LV[h]>=1?LV[h]:0.6;
+  const aMax=Math.max(3,Math.round((c===2?5:c===3?10:c===4?20:c===5?50:c<=7?99:c<=9?150:200)*(h===0?0.6:h===1?1:h===2?1.4:2)));
+  const bMax=Math.max(3,Math.round((c===2?10:c<=4?12:c<=6?20:c<=8?50:99)*(h===0?0.6:h===1?1:h===2?1.2:1.6)));
+  const a=R(2,aMax),b=R(2,bMax);
+  return numQ(`${fmt(a)} × ${fmt(b)}`,a*b);
+},
+div:(c,h)=>{
+  const bM=Math.max(3,Math.round((c<=3?5:c<=4?10:c<=6?12:c<=8?25:50)*[0.7,1,1.3,1.8][h]));
+  const qM=Math.max(4,Math.round((c<=3?10:c<=4?12:c<=6?25:c<=8?50:99)*[0.7,1,1.3,1.8][h]));
+  const b=R(2,bM),q=R(2,qM);
+  return numQ(`${fmt(b*q)} ÷ ${b}`,q);
+},
+pat:(c,h)=>{
+  const dmax=[0,3,5,10,15,20,25,25,25,25,25,25,25][c]+h*2;
+  const kinds=[0,1];
+  if(c>=3&&h>=1)kinds.push(2);
+  if(c>=4&&h>=1)kinds.push(3);
+  if(c>=4&&h>=2)kinds.push(4);
+  const k=pick(kinds);
+  if(k===0){const s=R(1,10),d=R(1,dmax);return numQ(`${s}, ${s+d}, ${s+2*d}, ${s+3*d}, ?`,s+4*d);}
+  if(k===1){const d=R(1,dmax),s=5*d+R(1,10);return numQ(`${s}, ${s-d}, ${s-2*d}, ${s-3*d}, ?`,s-4*d);}
+  if(k===2){const s=R(1,5),r=pick([2,3]);return numQ(`${s}, ${s*r}, ${s*r*r}, ${s*r**3}, ?`,s*r**4);}
+  if(k===3){const n=R(1,8);return numQ(`${n*n}, ${(n+1)**2}, ${(n+2)**2}, ${(n+3)**2}, ?`,(n+4)**2);}
+  const s=R(1,10),a=R(1,6),b=R(1,6);
+  return numQ(`${s}, ${s+a}, ${s+a+b}, ${s+2*a+b}, ${s+2*a+2*b}, ?`,s+3*a+2*b);
+},
+lcm:(c,h)=>{
+  let x,y;do{x=R(2,6+2*h);y=R(2,6+2*h);}while(x===y||gcd(x,y)!==1);
+  const g=R(2,Math.min(12,4+3*h+(c>5?2:0)));
+  const a=g*x,b=g*y;
+  return Math.random()<.5?numQ(`HCF of ${a} and ${b}`,g):numQ(`LCM of ${a} and ${b}`,g*x*y);
+},
+frac:(c,h)=>{
+  const maxD=c<=4?8:c<=6?10:12;
+  let mode;
+  if(c<=4||h===0)mode='like';
+  else if(h===1)mode=c<=5?'unlike':pick(['unlike','mul']);
+  else mode=c>=6?pick(['unlike','mul','div']):'unlike';
+  if(mode==='like'){
+    const d=R(4,maxD);const a=R(1,d-2);const op=pick(['+','−']);
+    if(op==='+'){const b=R(1,d-1-a);return fracQ(`${a}/${d} + ${b}/${d}`,a+b,d,[[a+b,d+d]]);}
+    const b=R(1,a);return fracQ(`${a}/${d} − ${b}/${d}`,a-b===0?1:a-b,a-b===0?1:d,[]);
+  }
+  if(mode==='unlike'){
+    let d1,d2;do{d1=R(2,maxD);d2=R(2,maxD);}while(d1===d2);
+    const a=R(1,d1-1),b=R(1,d2-1);
+    const add=Math.random()<.5;
+    let n=a*d2+(add?1:-1)*b*d1;const d=d1*d2;
+    if(n<=0){return fracQ(`${a}/${d1} + ${b}/${d2}`,a*d2+b*d1,d,[[a+b,d1+d2]]);}
+    return fracQ(`${a}/${d1} ${add?'+':'−'} ${b}/${d2}`,n,d,[[Math.abs(a-b)||1,Math.abs(d1-d2)||1],[a+b,d1+d2]]);
+  }
+  const a=R(1,maxD-1),b=R(2,maxD),cc=R(1,maxD-1),dd=R(2,maxD);
+  if(mode==='mul')return fracQ(`${a}/${b} × ${cc}/${dd}`,a*cc,b*dd,[[a*dd,b*cc]]);
+  return fracQ(`${a}/${b} ÷ ${cc}/${dd}`,a*dd,b*cc,[[a*cc,b*dd]]);
+},
+dec:(c,h)=>{
+  const dp=h===0?1:2,P=Math.pow(10,dp);
+  let hi=h===0?99:h===1?999:9999;if(c>=6)hi*=10;
+  if(h>=2&&c>=6&&Math.random()<.5){
+    const A=R(11,99),B=R(2,99);
+    return numQ(`${(A/10).toFixed(1)} × ${(B/10).toFixed(1)}`,(A*B)/100,2);
+  }
+  let A=R(P+1,hi),B=R(1,hi);const add=Math.random()<.5;
+  if(!add&&B>A)[A,B]=[B,A];
+  if(!add&&A===B)A++;
+  return numQ(`${(A/P).toFixed(dp)} ${add?'+':'−'} ${(B/P).toFixed(dp)}`,(add?A+B:A-B)/P,dp);
+},
+pct:(c,h)=>{
+  const L=h===0?[10,20,25,50]:h===1?[5,10,15,20,25,30,40,50,60,75]:[5,10,15,20,25,30,35,40,45,60,70,75,80,90];
+  const p=pick(L);const step=100/gcd(p,100);
+  const K=c<=6?8:15;
+  const y=step*R(1,K);
+  const t=R(0,h===0?0:h===1?1:2);
+  if(t===0)return numQ(`${p}% of ${y}`,p*y/100);
+  if(t===1){
+    let pp,b;do{pp=pick(L);b=pick([20,25,40,50,80,100,200,250,400,500]);}while((pp*b)%100!==0);
+    return numQ(`${pp*b/100} is what % of ${b}?`,pp);
+  }
+  const inc=Math.random()<.5;
+  return numQ(`${inc?'Increase':'Decrease'} ${y} by ${p}%`,y*(100+(inc?p:-p))/100);
+},
+sq:(c,h)=>{
+  const mx=Math.max(6,Math.round([0,0,0,0,0,12,12,15,20,25,30,30,30][c]*[0.7,1,1.3,1.7][h]));
+  const n=R(2,mx);
+  return Math.random()<.5?numQ(`${n}²`,n*n):numQ(`√${n*n}`,n);
+},
+cube:(c,h)=>{
+  const base=c<=6?8:c<=8?10:15;
+  const mx=Math.max(4,Math.round(base*[0.6,1,1.3,1.6][h]));
+  const n=R(2,mx);
+  return Math.random()<.5?numQ(`${n}³`,n**3):numQ(`∛${fmt(n**3)}`,n);
+},
+avg:(c,h)=>{
+  const hi=Math.max(6,Math.round([0,10,10,20,40,60,80,100,150,200,200,200,200][c]*LV[h]));
+  const t=h===0?0:h===1?pick([1,1,2]):pick([2,3,3,4]);
+  if(t<=1){
+    const n=t===0?3:5;const nums=[];let s=0;
+    for(let i=0;i<n-1;i++){const v=R(2,hi);nums.push(v);s+=v;}
+    let last=R(2,hi);last+=(n-(s+last)%n)%n;nums.push(last);s+=last;
+    return numQ(`Mean of ${shuffle(nums).join(', ')}`,s/n);
+  }
+  if(t===2&&c>=6){
+    const n=pick([5,7]);const nums=[];
+    while(nums.length<n){const v=R(2,hi+10);if(!nums.includes(v))nums.push(v);}
+    return numQ(`Median of ${nums.join(', ')}`,nums.slice().sort((a,b)=>a-b)[(n-1)/2]);
+  }
+  const m=R(8,Math.max(10,hi));let four,s4;
+  do{four=[R(2,m+5),R(2,m+5),R(2,m+5),R(2,m+5)];s4=four.reduce((a,b)=>a+b,0);}while(s4>=5*m-1);
+  return numQ(`Mean of 5 numbers is ${m}.\nFour of them: ${four.join(', ')}.\nThe fifth number = ?`,5*m-s4);
+},
+sdt:(c,h)=>{
+  const t=R(0,h===0?2:4);
+  const s=R(2,9)*10,hr=R(2,6);
+  if(t===0)return numQ(`A car goes at ${s} km/h for ${hr} h.\nDistance (km)?`,s*hr);
+  if(t===1)return numQ(`A car covers ${s*hr} km in ${hr} h.\nSpeed (km/h)?`,s);
+  if(t===2)return numQ(`Distance ${s*hr} km at ${s} km/h.\nTime (hours)?`,hr);
+  if(t===3){const k=R(1,8)*18;return numQ(`${k} km/h = ? m/s`,k*5/18);}
+  const [a,b,r]=pick([[40,60,48],[30,60,40],[20,30,24],[60,90,72],[50,75,60],[10,15,12]]);
+  return numQ(`Going at ${a} km/h, back at ${b} km/h.\nAverage speed (km/h)?`,r);
+},
+ratio:(c,h)=>{
+  const t=R(0,h===0?1:3);
+  if(t===0){const n=R(2,6),p=R(3,25);let m;do{m=R(2,12);}while(m===n);return numQ(`${n} notebooks cost ₹${n*p}.\nCost of ${m} notebooks (₹)?`,m*p);}
+  if(t===1){const a=R(1,5),b=R(a+1,8),k=R(2,12);return numQ(`Divide ₹${(a+b)*k} in the ratio ${a}:${b}.\nLarger share (₹)?`,b*k);}
+  if(t===2){const a=R(2,7),b=R(a+1,9),k=R(2,9);return numQ(`${a} : ${b} = x : ${b*k}\nx = ?`,a*k);}
+  let a,b,cc;do{a=R(1,6);b=R(1,6);cc=R(1,6);}while(a===b||b===cc||a===cc);
+  const k=R(2,9);
+  return numQ(`Divide ₹${(a+b+cc)*k} in the ratio ${a}:${b}:${cc}.\nSmallest share (₹)?`,Math.min(a,b,cc)*k);
+},
+area:(c,h)=>{
+  const mx=Math.max(4,Math.round([0,0,0,10,12,15,20,25,30,40,40,40,40][c]*[0.6,1,1.4,1.8][h]));
+  const shapes=['rect','sq'];
+  if(c>=5)shapes.push('tri');
+  if(c>=7)shapes.push('circ');
+  if(c>=8&&h>=1)shapes.push('trap');
+  const s=pick(shapes);
+  if(s==='rect'){const l=R(3,mx),b=R(2,l);return Math.random()<.5?numQ(`Rectangle: length ${l} cm, breadth ${b} cm.\nArea (cm²)?`,l*b):numQ(`Rectangle: length ${l} cm, breadth ${b} cm.\nPerimeter (cm)?`,2*(l+b));}
+  if(s==='sq'){const a=R(2,mx);return Math.random()<.5?numQ(`Square of side ${a} cm.\nArea (cm²)?`,a*a):numQ(`Square of side ${a} cm.\nPerimeter (cm)?`,4*a);}
+  if(s==='tri'){const b=R(3,mx);let ht=R(2,mx);if((b*ht)%2)ht++;return numQ(`Triangle: base ${b} cm, height ${ht} cm.\nArea (cm²)?`,b*ht/2);}
+  if(s==='circ'){const r=7*R(1,2+h);return Math.random()<.5?numQ(`Circle of radius ${r} cm (π = 22/7).\nArea (cm²)?`,22*r*r/7):numQ(`Circle of radius ${r} cm (π = 22/7).\nCircumference (cm)?`,44*r/7);}
+  const a=R(3,mx),b=R(2,mx);let ht=R(2,mx);if(((a+b)*ht)%2)ht++;
+  return numQ(`Trapezium: parallel sides ${a} cm, ${b} cm; height ${ht} cm.\nArea (cm²)?`,(a+b)*ht/2);
+},
+lin:(c,h)=>{
+  if(h===0){
+    const t=R(0,2),b=R(1,15);
+    if(t===0){const x=R(1,12);return numQ(`x + ${b} = ${x+b}\nx = ?`,x);}
+    if(t===1){const x=R(1,12)+b;return numQ(`x − ${b} = ${x-b}\nx = ?`,x);}
+    const a=R(2,9),x=R(1,12);return numQ(`${a}x = ${a*x}\nx = ?`,x);
+  }
+  if(h===1){
+    const a=R(2,9),x=R(1,12);
+    if(Math.random()<.5){const b=R(1,20);return numQ(`${poly([[a,'x'],[b,'']])} = ${a*x+b}\nx = ?`,x);}
+    const b=R(1,Math.max(1,a*x-1));return numQ(`${poly([[a,'x'],[-b,'']])} = ${a*x-b}\nx = ?`,x);
+  }
+  const cc=R(1,6),a=cc+R(1,6),b=R(1,20);
+  let x=R(1,10);if(c>=9&&Math.random()<.5)x=-R(1,9);
+  const d=(a-cc)*x+b;
+  return numQ(`${poly([[a,'x'],[b,'']])} = ${poly([[cc,'x'],[d,'']])}\nx = ?`,x);
+},
+pow:(c,h)=>{
+  const t=R(0,h===0?1:h===1?3:4);
+  if(t===0){const b=R(2,h===0?5:9),e=R(2,b<=3?5:3);return numQ(`${b}${sup(e)} = ?`,b**e);}
+  const b=R(2,9);
+  if(t===1){const m=R(2,9),n=R(2,9);return numQ(`${b}${sup(m)} × ${b}${sup(n)} = ${b}ˣ\nx = ?`,m+n);}
+  if(t===2){const n=R(2,6),m=n+R(2,7);return numQ(`${b}${sup(m)} ÷ ${b}${sup(n)} = ${b}ˣ\nx = ?`,m-n);}
+  if(t===3){const m=R(2,5),n=R(2,5);return numQ(`(${b}${sup(m)})${sup(n)} = ${b}ˣ\nx = ?`,m*n);}
+  const bb=R(2,5),n=R(1,4);return numQ(`${bb}${sup(-n)} = 1/?`,bb**n);
+},
+si:(c,h)=>{
+  const types=h===0?['si','sp']:h===1?['si','sp','pp']:['si','sp','pp','disc','loss'];
+  const t=pick(types);
+  if(t==='si'){const P=pick([500,1000,1500,2000,2500,4000,5000]),r=pick([2,4,5,6,8,10]),y=R(1,5);return numQ(`Simple interest on ₹${P} at ${r}% per year for ${y} years (₹)?`,P*r*y/100);}
+  let CP,p;do{CP=pick([100,200,250,400,500,800,1000,1200,2000]);p=pick([5,10,12,15,20,25,30]);}while((CP*p)%100!==0);
+  if(t==='sp')return numQ(`Cost price ₹${CP}, profit ${p}%.\nSelling price (₹)?`,CP*(100+p)/100);
+  if(t==='pp')return numQ(`CP = ₹${CP}, SP = ₹${CP*(100+p)/100}.\nProfit %?`,p);
+  if(t==='loss')return numQ(`CP = ₹${CP}, SP = ₹${CP*(100-p)/100}.\nLoss %?`,p);
+  let M,d;do{M=pick([200,400,500,800,1000,1500,2000]);d=pick([5,10,15,20,25]);}while((M*d)%100!==0);
+  return numQ(`Marked price ₹${M}, discount ${d}%.\nSelling price (₹)?`,M-M*d/100);
+},
+mens:(c,h)=>{
+  const list=['cubev','cuboidv'];
+  if(h>=1)list.push('cubetsa');
+  if(c>=8&&h>=1)list.push('cylv','cylc');
+  if(c>=9&&h>=1)list.push('conev','sphere','hemi');
+  const t=pick(list);
+  const a=R(2,h===0?6:10);
+  if(t==='cubev')return numQ(`Cube of side ${a} cm.\nVolume (cm³)?`,a**3);
+  if(t==='cubetsa')return numQ(`Cube of side ${a} cm.\nTotal surface area (cm²)?`,6*a*a);
+  if(t==='cuboidv'){const l=R(2,12),b=R(2,9),ht=R(2,9);return numQ(`Cuboid ${l} × ${b} × ${ht} cm.\nVolume (cm³)?`,l*b*ht);}
+  const r=7*R(1,2),ht=R(2,10);
+  if(t==='cylv')return numQ(`Cylinder: radius ${r} cm, height ${ht} cm (π = 22/7).\nVolume (cm³)?`,22*r*r*ht/7);
+  if(t==='cylc')return numQ(`Cylinder: radius ${r} cm, height ${ht} cm (π = 22/7).\nCurved surface area (cm²)?`,44*r*ht/7);
+  if(t==='conev'){const hh=3*R(1,4);return numQ(`Cone: radius ${r} cm, height ${hh} cm (π = 22/7).\nVolume (cm³)?`,22*r*r*hh/21);}
+  if(t==='sphere')return numQ(`Sphere of radius ${r} cm (π = 22/7).\nSurface area (cm²)?`,88*r*r/7);
+  return numQ(`Hemisphere of radius ${r} cm (π = 22/7).\nCurved surface area (cm²)?`,44*r*r/7);
+},
+alg:(c,h)=>{
+  const t=R(0,h===0?1:h===1?3:4);
+  if(t===0){const base=pick([20,30,40,50,100]),d=R(1,5);return numQ(`${base+d} × ${base-d} = ?`,base*base-d*d);}
+  if(t===1){const base=pick([20,30,40,50,100]),d=R(1,4),plus=Math.random()<.5;const n=plus?base+d:base-d;return numQ(`${n}² = ?`,n*n);}
+  if(t===2){const a=R(1,9),b=R(1,9),sgn=Math.random()<.5?1:-1;return numQ(`Coefficient of x in (x ${sgn>0?'+':'−'} ${a})(x + ${b})`,b+sgn*a);}
+  if(t===3){const s=R(3,12),p=R(1,Math.floor(s*s/2)-1);return numQ(`x + y = ${s} and xy = ${p}.\nx² + y² = ?`,s*s-2*p);}
+  const a=R(2,9),b=R(2,9);
+  return numQ(`(${a}+${b})² − (${a}−${b})² = ?`,4*a*b);
+},
+prob:(c,h)=>{
+  const P=['1/2','1/3','1/4','1/6','1/13','1/36','3/4','2/3','5/6','1/12','1/8'];
+  if(h>=2&&Math.random()<.5){
+    const L=[['A die is rolled. P(a prime number)?','1/2'],['Two coins are tossed. P(exactly one head)?','1/2'],['Two coins are tossed. P(two heads)?','1/4'],['A card is drawn from 52 cards. P(a king)?','1/13'],['A card is drawn from 52 cards. P(a heart)?','1/4'],['Two dice are rolled. P(sum = 7)?','1/6'],['Two dice are rolled. P(sum = 12)?','1/36'],['A die is rolled. P(number greater than 4)?','1/3'],['A die is rolled. P(a multiple of 3)?','1/3'],['Two coins are tossed. P(at least one head)?','3/4']];
+    const [q,a]=pick(L);return txtQ(q,a,P);
+  }
+  const r=R(1,7),b=R(1,7),g=R(1,6);
+  return fracQ(`A bag has ${r} red, ${b} blue and ${g} green balls.\nP(red ball) = ?`,r,r+b+g,[[r,b],[b,r+b+g]]);
+},
+quad:(c,h)=>{
+  if(h>=2&&Math.random()<.4){
+    const a=R(1,4);let b=R(-9,9),cc=R(-9,9);if(b===0)b=3;if(cc===0)cc=-2;
+    return numQ(`Discriminant of ${poly([[a,'x²'],[b,'x'],[cc,'']])} = 0`,b*b-4*a*cc);
+  }
+  let r1,r2;
+  if(h===0){r1=R(1,9);r2=R(1,9);}else{do{r1=R(-9,9);r2=R(-9,9);}while(r1===0||r2===0);}
+  const eq=poly([[1,'x²'],[-(r1+r2),'x'],[r1*r2,'']])+' = 0';
+  const t=R(0,2);
+  if(t===0)return numQ(`${eq}\nSum of the roots = ?`,r1+r2);
+  if(t===1)return numQ(`${eq}\nProduct of the roots = ?`,r1*r2);
+  return numQ(`${eq}\nLarger root = ?`,Math.max(r1,r2));
+},
+coord:(c,h)=>{
+  const t=h===0?R(0,1):R(0,2);
+  if(t===0){const m=R(-4,4),dx=R(1,4),x1=R(-4,4),y1=R(-4,4);return numQ(`Slope of the line through (${x1}, ${y1}) and (${x1+dx}, ${y1+m*dx}) = ?`,m);}
+  if(t===1){const x1=R(-6,6),x2=x1+2*R(1,5),y1=R(-6,6),y2=y1+2*R(1,5);const useX=Math.random()<.5;return numQ(`Midpoint of (${x1}, ${y1}) and (${x2}, ${y2}).\n${useX?'x':'y'}-coordinate = ?`,useX?(x1+x2)/2:(y1+y2)/2);}
+  const T=pick(h===1?[[3,4,5],[6,8,10]]:[[3,4,5],[6,8,10],[5,12,13],[8,15,17]]);
+  const x1=R(-5,5),y1=R(-5,5);
+  return numQ(`Distance between (${x1}, ${y1}) and (${x1+T[0]}, ${y1+T[1]}) = ?`,T[2]);
+},
+trig:(c,h)=>{
+  const TV={sin:['0','1/2','1/√2','√3/2','1'],cos:['1','√3/2','1/√2','1/2','0'],tan:['0','1/√3','1','√3',null]};
+  const ANG=[0,30,45,60,90];
+  const pool=['0','1/2','1/√2','√3/2','1','1/√3','√3','2','√2','3/2'];
+  if(h<=1||Math.random()<.35){
+    const f=pick(['sin','cos','tan']);let i=R(0,4);if(f==='tan'&&i===4)i=R(0,3);
+    return txtQ(`${f} ${ANG[i]}° = ?`,TV[f][i],pool);
+  }
+  if(Math.random()<.5){
+    const a=pick([10,15,20,25,35,40,55,65,70,75]),b=90-a;
+    const k=R(0,2);
+    if(k===0)return txtQ(`sin ${a}° ÷ cos ${b}° = ?`,'1',pool);
+    if(k===1)return txtQ(`cos ${a}° − sin ${b}° = ?`,'0',pool);
+    return txtQ(`tan ${a}° × tan ${b}° = ?`,'1',pool);
+  }
+  const L=[['sin 30° + cos 60°','1'],['tan 45° + sin 90°','2'],['sin 60° ÷ cos 30°','1'],['2 sin 30° + tan 45°','2'],['cos 0° − sin 0°','1'],['tan 60° × tan 30°','1'],['sin 45° × cos 45°','1/2'],['cos 60° + cos 60°','1'],['sin² 45° + cos² 45°','1'],['tan 45° + cos 60°','3/2']];
+  const [q,a]=pick(L);return txtQ(`${q} = ?`,a,pool);
+},
+ap:(c,h)=>{
+  const a=R(1,10),d=R(2,7);
+  const t=h===0?0:R(0,2);
+  const shown=`${a}, ${a+d}, ${a+2*d}, …`;
+  if(t===0){const n=R(6,20);return numQ(`AP: ${shown}\nFind a${sub(n)} (the ${n}th term).`,a+(n-1)*d);}
+  if(t===1){const n=R(5,15);return numQ(`AP: ${shown}\nSum of the first ${n} terms = ?`,n*(2*a+(n-1)*d)/2);}
+  const n=R(8,25);return numQ(`AP: ${a}, ${a+d}, ${a+2*d}, …, ${a+(n-1)*d}\nHow many terms?`,n);
+},
+log:(c,h)=>{
+  const b=pick([2,3,5,10]);const mx={2:6,3:4,5:3,10:3}[b];
+  const x=R(1,mx),y=R(1,mx);
+  const t=h===0?0:R(0,3);
+  if(t===0)return numQ(`log${sub(b)} ${b**x} = ?`,x);
+  if(t===1)return numQ(`log${sub(b)} ${b**x} + log${sub(b)} ${b**y} = ?`,x+y);
+  if(t===2){const hi=Math.max(x,y),lo=Math.min(x,y)===hi?hi-1||1:Math.min(x,y);return numQ(`log${sub(b)} ${b**hi} − log${sub(b)} ${b**lo} = ?`,hi-lo);}
+  return numQ(`log${sub(b)} x = ${x}\nx = ?`,b**x);
+},
+pc:(c,h)=>{
+  const t=h===0?R(0,1):R(0,3);
+  if(t===0){const n=R(3,6);let f=1;for(let i=2;i<=n;i++)f*=i;return numQ(`${n}! = ?`,f);}
+  if(t===1){const n=R(4,7),r=R(2,3);let p=1;for(let i=0;i<r;i++)p*=n-i;return numQ(`${sup(n)}P${sub(r)} = ?`,p);}
+  const n=R(5,h>=2?12:9),r=R(2,Math.min(4,n-1));
+  let num=1,den=1;for(let i=0;i<r;i++){num*=n-i;den*=i+1;}
+  if(t===2)return numQ(`${sup(n)}C${sub(r)} = ?`,num/den);
+  return numQ(`Choose a team of ${r} from ${n} students.\nIn how many ways?`,num/den);
+},
+der:(c,h)=>{
+  if(h===0){const n=R(2,4),k=R(1,4);return numQ(`f(x) = x${sup(n)}.\nFind f′(${k}).`,n*k**(n-1));}
+  if(h===1){const a=R(1,6),b=R(1,9),cc=R(1,9),k=R(1,5);return numQ(`f(x) = ${poly([[a,'x²'],[b,'x'],[cc,'']])}.\nFind f′(${k}).`,2*a*k+b);}
+  const a=R(1,4),b=R(1,6),cc=R(1,9),k=R(1,4);
+  return numQ(`f(x) = ${poly([[a,'x³'],[b,'x²'],[cc,'x']])}.\nFind f′(${k}).`,3*a*k*k+2*b*k+cc);
+},
+int:(c,h)=>{
+  const k=R(1,5);
+  if(h===0){const a=R(1,9);return numQ(`∫${sub(0)}${sup(k)} ${a} dx = ?`,a*k);}
+  if(h===1){const t=R(0,1);if(t===0)return numQ(`∫${sub(0)}${sup(k)} 2x dx = ?`,k*k);return numQ(`∫${sub(0)}${sup(k)} 3x² dx = ?`,k**3);}
+  const a=R(1,4),b=R(1,5);
+  return numQ(`∫${sub(0)}${sup(k)} (${poly([[3*a,'x²'],[2*b,'x']])}) dx = ?`,a*k**3+b*k*k);
+},
+det:(c,h)=>{
+  const lo=h<=1?1:-6,hi=h===0?6:9;
+  const a=R(lo,hi),b=R(lo,hi),cc=R(lo,hi),d=R(lo,hi);
+  const pad=n=>String(n).padStart(3,' ');
+  return numQ(`Determinant of\n|${pad(a)} ${pad(b)} |\n|${pad(cc)} ${pad(d)} |`,a*d-b*cc);
+}
+};
+
+const CONCEPTS=[
+ {id:'add',name:'Addition',from:1,to:12},
+ {id:'sub',name:'Subtraction',from:1,to:12},
+ {id:'pat',name:'Number patterns',from:1,to:5},
+ {id:'mul',name:'Multiplication',from:2,to:12},
+ {id:'div',name:'Division',from:3,to:12},
+ {id:'area',name:'Area & perimeter',from:3,to:10},
+ {id:'frac',name:'Fractions',from:3,to:8},
+ {id:'dec',name:'Decimals',from:4,to:8},
+ {id:'lcm',name:'LCM & HCF',from:4,to:8},
+ {id:'pct',name:'Percentages',from:5,to:12},
+ {id:'sq',name:'Squares & roots',from:5,to:12},
+ {id:'avg',name:'Mean & median',from:5,to:9},
+ {id:'sdt',name:'Speed, distance, time',from:5,to:9},
+ {id:'cube',name:'Cubes & cube roots',from:6,to:10},
+ {id:'ratio',name:'Ratio & proportion',from:6,to:9},
+ {id:'lin',name:'Linear equations',from:6,to:10},
+ {id:'pow',name:'Powers & indices',from:7,to:12},
+ {id:'si',name:'Interest, profit & loss',from:7,to:10},
+ {id:'mens',name:'Mensuration (volume, surface area)',from:7,to:10},
+ {id:'alg',name:'Algebraic identities',from:8,to:10},
+ {id:'prob',name:'Probability',from:8,to:12},
+ {id:'quad',name:'Quadratic equations',from:9,to:12},
+ {id:'coord',name:'Coordinate geometry',from:9,to:12},
+ {id:'trig',name:'Trigonometry',from:10,to:12},
+ {id:'ap',name:'Arithmetic progression',from:10,to:12},
+ {id:'log',name:'Logarithms',from:11,to:12},
+ {id:'pc',name:'Permutations & combinations',from:11,to:12},
+ {id:'der',name:'Derivatives',from:11,to:12},
+ {id:'int',name:'Integration',from:12,to:12},
+ {id:'det',name:'Determinants',from:12,to:12}
+];
+
+function makeQ(ids,c,h,lastId,seen){
+  for(let tries=0;tries<30;tries++){
+    let pool=ids.length>1?ids.filter(i=>i!==lastId):ids;
+    const id=pick(pool);
+    let r;
+    try{r=GEN[id](c,h);}catch(e){continue;}
+    if(!r||!r.ans||!r.wrong||r.wrong.length<3)continue;
+    const all=[r.ans].concat(r.wrong.slice(0,3));
+    if(new Set(all).size!==4)continue;
+    if(all.some(s=>/NaN|undefined|Infinity/.test(String(s))))continue;
+    if(/NaN|undefined|Infinity/.test(r.q))continue;
+    if(seen&&seen.has(r.q)&&tries<20)continue;
+    return {id,q:r.q,ans:r.ans,wrong:r.wrong.slice(0,3)};
+  }
+  return null;
+}
+//#GEN-END
+</script>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const KEY='mathduel.v1';
+const S={cls:6,lvl:1,time:15,count:10,pen:false,snd:true,mode:'duel',mlen:120,names:['Player 1','Player 2'],sel:null};
+try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j&&typeof j==='object')Object.assign(S,j);}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const avail=()=>CONCEPTS.filter(k=>S.cls>=k.from&&S.cls<=k.to);
+function fixSel(reset){
+  const av=avail().map(k=>k.id);
+  if(reset||!Array.isArray(S.sel))S.sel=av.slice();
+  else S.sel=S.sel.filter(id=>av.includes(id));
+  if(!S.sel.length)S.sel=av.slice();
+}
+fixSel(false);
+const ord=n=>n+(n===1?'st':n===2?'nd':n===3?'rd':'th');
+const LVN=['Easy','Medium','Hard','Expert'];
+const TIMES=[5,10,15,20,30,45,60];
+const COUNTS=[5,10,15,20,30];
+const LENS=[60,120,180,300,600];
+const mm=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200);}
+
+function renderSetup(){
+  $('#n0').value=S.names[0]==='Player 1'?'':S.names[0];
+  $('#n1').value=S.names[1]==='Player 2'?'':S.names[1];
+  $('#clsGrid').innerHTML=Array.from({length:12},(_,i)=>i+1).map(n=>`<button class="chip" data-cls="${n}" aria-pressed="${S.cls===n}">${n}</button>`).join('');
+  $('#clsLabel').textContent=ord(S.cls);
+  $('#lvlRow').innerHTML=LVN.map((n,i)=>`<button class="chip" data-lvl="${i}" aria-pressed="${S.lvl===i}">${n}</button>`).join('');
+  $('#timeRow').innerHTML=TIMES.map(t=>`<button class="chip" data-time="${t}" aria-pressed="${S.time===t}">${t}s</button>`).join('');
+  $('#timeLabel').textContent=S.time+' seconds';
+  $('#countRow').innerHTML=COUNTS.map(t=>`<button class="chip" data-count="${t}" aria-pressed="${S.count===t}">${t}</button>`).join('');
+  const av=avail();
+  $('#conRow').innerHTML=av.map(k=>`<button class="chip" data-con="${k.id}" aria-pressed="${S.sel.includes(k.id)}">${k.name}</button>`).join('');
+  $('#conCount').textContent=S.sel.length+' of '+av.length+' selected';
+  $('#optPen').setAttribute('aria-pressed',S.pen);
+  $('#optSnd').setAttribute('aria-pressed',S.snd);
+  const M=S.mode==='marathon';
+  $('#modeRow').innerHTML=[['duel','Duel'],['marathon','Marathon']].map(([k,n])=>`<button class="chip" data-mode="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
+  $('#modeHelp').textContent=M?'Both players race the clock on their own questions. Answer as many as you can — most correct answers wins.':'Same question for both players. First correct tap wins the point.';
+  $('#lenRow').innerHTML=LENS.map(t=>`<button class="chip" data-mlen="${t}" aria-pressed="${S.mlen===t}">${t/60} min</button>`).join('');
+  $('#lenLabel').textContent=S.mlen/60+(S.mlen===60?' minute':' minutes');
+  $('#cardLen').hidden=!M;$('#cardTime').hidden=M;$('#cardCount').hidden=M;
+  $('#sumLine').textContent=M?`${ord(S.cls)} std · ${LVN[S.lvl]} · Marathon ${S.mlen/60} min`:`${ord(S.cls)} std · ${LVN[S.lvl]} · ${S.time}s · ${S.count} questions`;
+}
+$('#setup').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.cls){S.cls=+b.dataset.cls;fixSel(true);}
+  else if(b.dataset.lvl)S.lvl=+b.dataset.lvl;
+  else if(b.dataset.mode)S.mode=b.dataset.mode;
+  else if(b.dataset.mlen)S.mlen=+b.dataset.mlen;
+  else if(b.dataset.time)S.time=+b.dataset.time;
+  else if(b.dataset.count)S.count=+b.dataset.count;
+  else if(b.dataset.con){const id=b.dataset.con;S.sel=S.sel.includes(id)?S.sel.filter(x=>x!==id):S.sel.concat(id);}
+  else if(b.id==='selAll')S.sel=avail().map(k=>k.id);
+  else if(b.id==='selNone')S.sel=[];
+  else if(b.id==='optPen')S.pen=!S.pen;
+  else if(b.id==='optSnd')S.snd=!S.snd;
+  else return;
+  save();renderSetup();
+});
+['#n0','#n1'].forEach((id,i)=>$(id).addEventListener('input',e=>{S.names[i]=e.target.value.trim()||('Player '+(i+1));save();}));
+
+/* ---------- sound ---------- */
+let ac;
+function beep(f,d=0.12,type='sine',v=0.12,delay=0){
+  if(!S.snd)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(ac.destination);
+    const t=ac.currentTime+delay;o.start(t);o.stop(t+d);
+  }catch(e){}
+}
+const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}};
+const sGood=()=>{beep(660,.09,'sine',.14);beep(880,.14,'sine',.14,.09);};
+const sBad=()=>beep(180,.22,'square',.07);
+const sTick=()=>beep(520,.08,'sine',.1);
+const sTime=()=>beep(240,.3,'triangle',.12);
+
+/* ---------- game ---------- */
+const P=[0,1].map(i=>{
+  const root=$('#panel'+i);
+  root.innerHTML=`<div class="phead"><span class="pname"></span><span class="ptime"></span><span class="pscore">0</span></div>
+  <div class="qwrap"><div class="qtext"></div><div class="pstatus"></div></div>
+  <div class="opts">${[0,1,2,3].map(k=>`<button class="opt" data-i="${k}"></button>`).join('')}</div>
+  <div class="stats"></div>`;
+  const q=s=>root.querySelector(s);
+  return {root,name:q('.pname'),time:q('.ptime'),score:q('.pscore'),q:q('.qtext'),status:q('.pstatus'),opts:[...root.querySelectorAll('.opt')],stats:q('.stats')};
+});
+let G=null,tick=null,gid=0;
+const names=()=>[S.names[0]||'Player 1',S.names[1]||'Player 2'];
+
+function show(which){$('#setup').hidden=which!=='setup';$('#game').hidden=which!=='game';}
+function clearAll(){clearInterval(tick);tick=null;if(G){clearTimeout(G.to);}}
+
+function startGame(){
+  if(!S.sel.length){toast('Pick at least one concept');return;}
+  save();clearAll();
+  const nm=names();
+  G={id:++gid,mode:S.mode==='marathon'?'m':'d',n:0,total:S.count,scores:[0,0],correct:[0,0],times:[[],[]],last:null,seen:new Set(),phase:'ready',paused:false,locked:[false,false],cur:null,to:null,rem:0,deadline:0};
+  show('game');
+  $('#resBtns').hidden=true;$('#barWrap').hidden=false;$('#pauseBtn').hidden=false;
+  $('#qn0').hidden=false;$('#qn1').hidden=false;
+  P.forEach((p,i)=>{p.root.classList.remove('result');p.name.textContent=nm[i];p.score.textContent='0';p.time.textContent='';p.stats.innerHTML='';p.status.textContent='';p.status.className='pstatus';
+    p.opts.forEach(b=>{b.textContent='';b.className='opt';b.disabled=true;});});
+  $('#qn0').textContent=$('#qn1').textContent='';
+  $('#barFill').style.width='100%';$('#barFill').classList.remove('low');
+  let c=3;const myId=G.id;
+  const step=()=>{
+    if(!G||G.id!==myId)return;
+    if(c===0){if(G.mode==='m')beginMarathon();else nextQuestion();return;}
+    P.forEach(p=>{p.q.className='qtext huge';p.q.textContent=c;p.status.textContent=c===3?'Get ready!':'';});
+    sTick();c--;G.to=setTimeout(step,800);
+  };
+  step();
+}
+
+function nextQuestion(){
+  if(!G)return;
+  if(G.n>=G.total){endGame();return;}
+  const ids=S.sel.length?S.sel:avail().map(k=>k.id);
+  let r=makeQ(ids,S.cls,S.lvl,G.last,G.seen);
+  if(!r)r=makeQ(['add'],S.cls,S.lvl,null,null);
+  G.n++;G.last=r.id;G.seen.add(r.q);
+  const all=[r.ans].concat(r.wrong);
+  G.cur={q:r.q,ans:r.ans,opts:[shuffle(all),shuffle(all)]};
+  G.locked=[false,false];G.phase='question';
+  P.forEach((p,i)=>{
+    p.q.className='qtext'+(r.q.length>46||r.q.split('\n').length>2?' long':'');
+    p.q.textContent=r.q;
+    p.status.textContent='';p.status.className='pstatus';
+    p.opts.forEach((b,k)=>{b.textContent=G.cur.opts[i][k];b.className='opt';b.disabled=false;});
+  });
+  $('#qn0').textContent=$('#qn1').textContent=`${G.n} / ${G.total}`;
+  G.start=Date.now();G.rem=S.time*1000;G.deadline=G.start+G.rem;
+  updateTime(G.rem);
+  clearInterval(tick);tick=setInterval(onTick,50);
+}
+
+function updateTime(rem){
+  const frac=Math.max(0,rem/(S.time*1000));
+  $('#barFill').style.width=(frac*100)+'%';
+  $('#barFill').classList.toggle('low',frac<.25);
+  const s=Math.ceil(Math.max(0,rem)/1000);
+  P.forEach(p=>p.time.textContent=s+'s');
+}
+/* ---------- marathon ---------- */
+function beginMarathon(){
+  G.phase='run';
+  G.m=[{last:null,seen:new Set()},{last:null,seen:new Set()}];
+  G.wrong=[0,0];G.lock=[false,false];
+  G.rem=S.mlen*1000;G.endAt=Date.now()+G.rem;
+  nextQ(0);nextQ(1);updStat();updateTimeM(G.rem);
+  clearInterval(tick);tick=setInterval(onTick,100);
+}
+function nextQ(p){
+  const ids=S.sel.length?S.sel:avail().map(k=>k.id);
+  const m=G.m[p];
+  const r=makeQ(ids,S.cls,S.lvl,m.last,m.seen)||makeQ(['add'],S.cls,S.lvl,null,null);
+  m.last=r.id;m.seen.add(r.q);if(m.seen.size>80)m.seen.clear();
+  m.cur={q:r.q,ans:r.ans,opts:shuffle([r.ans].concat(r.wrong))};
+  G.lock[p]=false;
+  const pn=P[p];
+  pn.q.className='qtext'+(r.q.length>46||r.q.split('\n').length>2?' long':'');
+  pn.q.textContent=r.q;pn.status.textContent='';pn.status.className='pstatus';
+  pn.opts.forEach((b,k)=>{b.textContent=m.cur.opts[k];b.className='opt';b.disabled=false;});
+}
+function updStat(){
+  $('#qn0').textContent=`✓ ${G.correct[0]}   ✗ ${G.wrong[0]}`;
+  $('#qn1').textContent=`✓ ${G.correct[1]}   ✗ ${G.wrong[1]}`;
+}
+function updateTimeM(rem){
+  const frac=Math.max(0,rem/(S.mlen*1000));
+  $('#barFill').style.width=(frac*100)+'%';
+  $('#barFill').classList.toggle('low',rem<=10000);
+  P.forEach(p=>p.time.textContent=mm(rem/1000));
+}
+function answerM(p,i){
+  if(!G||G.phase!=='run'||G.paused||G.lock[p])return;
+  G.lock[p]=true;
+  const m=G.m[p],btn=P[p].opts[i],myId=G.id;
+  const ok=m.cur.opts[i]===m.cur.ans;
+  P[p].opts.forEach(b=>{b.disabled=true;});
+  if(ok){G.scores[p]++;G.correct[p]++;btn.classList.add('correct');sGood();}
+  else{
+    G.wrong[p]++;if(S.pen)G.scores[p]=Math.max(0,G.scores[p]-1);
+    btn.classList.add('wrong');
+    P[p].opts.forEach(b=>{if(b.textContent===m.cur.ans)b.classList.add('correct');});
+    sBad();buzz(60);
+  }
+  P[p].score.textContent=G.scores[p];updStat();
+  setTimeout(()=>{if(G&&G.id===myId&&G.phase==='run')nextQ(p);},ok?220:650);
+}
+
+function onTick(){
+  if(G&&G.mode==='m'){
+    if(G.paused||G.phase!=='run')return;
+    const rem=G.endAt-Date.now();updateTimeM(rem);
+    if(rem<=0)endGame();
+    return;
+  }
+  if(!G||G.paused||G.phase!=='question')return;
+  const rem=G.deadline-Date.now();
+  updateTime(rem);
+  if(rem<=0)reveal('time');
+}
+
+function answer(p,i){
+  if(G&&G.mode==='m')return answerM(p,i);
+  if(!G||G.phase!=='question'||G.paused||G.locked[p])return;
+  const chosen=G.cur.opts[p][i];
+  const btn=P[p].opts[i];
+  if(chosen===G.cur.ans){
+    const el=(Date.now()-G.start)/1000;
+    G.scores[p]++;G.correct[p]++;G.times[p].push(el);
+    btn.classList.add('correct');
+    reveal('win',p,el);
+  }else{
+    G.locked[p]=true;btn.classList.add('wrong');btn.disabled=true;
+    if(S.pen)G.scores[p]=Math.max(0,G.scores[p]-1);
+    P[p].score.textContent=G.scores[p];
+    P[p].opts.forEach(b=>{if(!b.classList.contains('wrong'))b.disabled=true;});
+    P[p].status.textContent=S.pen?'Wrong  −1':'Wrong — wait for next';P[p].status.className='pstatus bad';
+    sBad();buzz(60);
+    if(G.locked[0]&&G.locked[1])reveal('both');
+  }
+}
+[0,1].forEach(i=>P[i].root.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('.opt');if(!b||b.disabled)return;
+  e.preventDefault();answer(i,+b.dataset.i);
+}));
+
+function reveal(kind,w,el){
+  clearInterval(tick);tick=null;
+  G.phase='reveal';
+  P.forEach((p,i)=>{
+    p.score.textContent=G.scores[i];
+    p.opts.forEach(b=>{b.disabled=true;if(b.textContent===G.cur.ans)b.classList.add('correct');});
+    if(kind==='win'){
+      if(i===w){p.status.textContent=`+1  Correct!  ${el.toFixed(1)}s`;p.status.className='pstatus good';}
+      else{p.status.textContent=G.locked[i]?(S.pen?'Wrong  −1':'Wrong'):'Too slow';p.status.className='pstatus bad';}
+    }else{
+      p.status.textContent=kind==='time'?'Time up!':'No one got it';p.status.className='pstatus bad';
+    }
+  });
+  if(kind==='win'){sGood();buzz(30);}else sTime();
+  const myId=G.id;
+  G.to=setTimeout(()=>{if(G&&G.id===myId)nextQuestion();},1500);
+}
+
+function endGame(){
+  clearAll();G.phase='end';
+  const [a,b]=G.scores;const w=a>b?0:b>a?1:-1;
+  const avg=i=>G.times[i].length?(G.times[i].reduce((x,y)=>x+y,0)/G.times[i].length).toFixed(1)+'s':'–';
+  P.forEach((p,i)=>{
+    p.root.classList.add('result');
+    p.q.className='qtext';
+    p.q.textContent=w===-1?'🤝 It’s a draw!':w===i?'🏆 You win!':'Good game!';
+    p.status.textContent='';
+    p.time.textContent='';
+    p.score.textContent=G.scores[i];
+    if(G.mode==='m'){
+      const att=G.correct[i]+G.wrong[i];
+      p.stats.innerHTML=`<div>Score <b>${G.scores[i]}</b> – ${G.scores[1-i]}</div><div>Correct <b>${G.correct[i]}</b> · Wrong <b>${G.wrong[i]}</b></div><div>Accuracy <b>${att?Math.round(100*G.correct[i]/att)+'%':'–'}</b></div>`;
+    }else
+    p.stats.innerHTML=`<div>Score <b>${G.scores[i]}</b> – ${G.scores[1-i]}</div><div>Correct answers <b>${G.correct[i]}</b> / ${G.total}</div><div>Average speed <b>${avg(i)}</b></div>`;
+  });
+  $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
+  sGood();setTimeout(()=>sGood(),300);
+}
+
+function pauseGame(){
+  if(!G||(G.phase!=='question'&&G.phase!=='run')||G.paused)return;
+  G.paused=true;G.rem=(G.mode==='m'?G.endAt:G.deadline)-Date.now();$('#pauseOv').hidden=false;
+}
+function resumeGame(){
+  if(!G||!G.paused){$('#pauseOv').hidden=true;return;}
+  G.paused=false;if(G.mode==='m')G.endAt=Date.now()+G.rem;else G.deadline=Date.now()+G.rem;$('#pauseOv').hidden=true;
+}
+function quit(){clearAll();G=null;$('#pauseOv').hidden=true;show('setup');renderSetup();}
+
+$('#pauseBtn').addEventListener('click',pauseGame);
+$('#resumeBtn').addEventListener('click',resumeGame);
+$('#quitBtn').addEventListener('click',quit);
+$('#againBtn').addEventListener('click',startGame);
+$('#setBtn').addEventListener('click',quit);
+$('#startBtn').addEventListener('click',()=>{try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();}catch(e){}startGame();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
+
+renderSetup();
+})();
+</script>
+<script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>
