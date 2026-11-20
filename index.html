@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Math Duel">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
@@ -1530,6 +1530,11 @@ renderSetup();
 {const rp=new URLSearchParams(location.search).get('room');
 if(rp&&/^\d{5}$/.test(rp)){S.net='online';joinScreen(rp);}}
 })();
+/* full screen while playing (Android/desktop browsers; installed app is already full screen) */
+function goFS(){try{if(matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone)return;
+  const e=document.documentElement,f=e.requestFullscreen||e.webkitRequestFullscreen;if(f&&!document.fullscreenElement){const r=f.call(e,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{});}
+  if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});}catch(e){}}
+['startBtn','createBtn','goBtn','lbStart','againBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',goFS,true);});
 </script>
 <script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
 </body>
