@@ -116,9 +116,35 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 #game.online #panel1.result .qwrap{display:flex}
 #game.online .qn.flip{display:none}
 #game.online .pause{letter-spacing:0;font-size:16px}
+
+#splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));transition:opacity .5s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash .sTitle{font-size:44px;font-weight:800;letter-spacing:.5px;color:#fff;margin:0 0 6px;animation:sUp .7s ease both}
+#splash .sTitle b{color:#00d1ff}
+#splash .sSub{color:#9fb3bd;font-size:14px;letter-spacing:3px;text-transform:uppercase;margin:0 0 34px;animation:sUp .7s .15s ease both}
+#splash .sBrand{display:flex;flex-direction:column;align-items:center;gap:10px;animation:sUp .7s .35s ease both}
+#splash .sBrand small{color:#8aa0ab;font-size:12px;letter-spacing:2px;text-transform:uppercase}
+#splash .sBrand img{height:84px;width:auto}
+#splash .sBrand span{color:#fff;font-size:20px;font-weight:700;letter-spacing:1px}
+#splash .sBar{width:140px;height:3px;background:#12303a;border-radius:3px;overflow:hidden;margin:34px 0 0}
+#splash .sBar i{display:block;height:100%;width:100%;background:#00d1ff;transform:translateX(-100%);animation:sLoad 2s .2s ease forwards}
+#splash .sNote{position:absolute;left:24px;right:24px;bottom:calc(22px + env(safe-area-inset-bottom));color:#8aa0ab;font-size:12px;line-height:1.5;animation:sUp .7s .6s ease both}
+@keyframes sUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes sLoad{to{transform:none}}
 </style>
 </head>
 <body>
+<div id="splash" aria-label="Loading">
+  <h1 class="sTitle">Math <b>Duel</b></h1>
+  <p class="sSub">2-player maths quiz</p>
+  <div class="sBrand"><small>Powered by</small><img id="sLogo" alt="Triods Tuition logo"><span>Triods Tuition</span></div>
+  <div class="sBar"><i></i></div>
+  <p class="sNote">Made for kids to learn maths in a fun way, to speed up calculations and sharpen mental maths.</p>
+</div>
+<script>document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('splash'),l=document.querySelector('.brand .logo');if(l)document.getElementById('sLogo').src=l.src;
+var done=false;function hide(){if(done)return;done=true;s.classList.add('out');setTimeout(function(){s.remove();},600);}
+s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
+
 
 <main id="setup" class="screen">
   <div class="scroll"><div class="wrap">
