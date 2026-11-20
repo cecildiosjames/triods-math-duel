@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Math Duel">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
 :root{
@@ -161,6 +162,8 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 #hofOv li small{display:block;font-weight:400;color:#8aa0ab;font-size:12px}
 #hofOv li .pt{font-weight:800;color:var(--accent);font-size:18px}
 #hofOv .empty{text-align:center;color:#8aa0ab;padding:18px 0;font-size:14px}
+.solo .panel.p2{transform:none}.solo #panel1 .opt{pointer-events:none}
+#cardBot .help{margin:10px 0 0;font-size:13px}
 </style>
 </head>
 <body>
@@ -186,6 +189,12 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
       <h2>Play with</h2>
       <div class="row" id="netRow"></div>
       <p class="sub" id="netHelp" style="margin:10px 0 0;font-size:13px"></p>
+    </div>
+
+    <div class="card" id="cardBot" hidden>
+      <h2>Computer level <b id="botLabel"></b></h2>
+      <div class="row" id="botRow"></div>
+      <p class="sub" id="botHelp" style="margin:10px 0 0;font-size:13px"></p>
     </div>
 
     <div class="card">
@@ -740,7 +749,7 @@ function makeQ(ids,c,h,lastId,seen){
 (()=>{
 const $=s=>document.querySelector(s);
 const KEY='mathduel.v1';
-const S={cls:6,lvl:1,time:15,count:10,pen:false,snd:true,mode:'duel',mlen:120,net:'local',names:['Player 1','Player 2'],sel:null};
+const S={cls:6,lvl:1,time:15,count:10,pen:false,snd:true,mode:'duel',mlen:120,bot:1,net:'local',names:['Player 1','Player 2'],sel:null};
 try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j&&typeof j==='object')Object.assign(S,j);}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const avail=()=>CONCEPTS.filter(k=>S.cls>=k.from&&S.cls<=k.to);
@@ -779,13 +788,17 @@ function renderSetup(){
   $('#lenRow').innerHTML=LENS.map(t=>`<button class="chip" data-mlen="${t}" aria-pressed="${S.mlen===t}">${t/60} min</button>`).join('');
   $('#lenLabel').textContent=S.mlen/60+(S.mlen===60?' minute':' minutes');
   $('#cardLen').hidden=!M;$('#cardTime').hidden=M;$('#cardCount').hidden=M;
-  const ON=S.net==='online';
-  $('#netRow').innerHTML=[['local','Same phone'],['online','Online with a friend']].map(([k,n])=>`<button class="chip" data-net="${k}" aria-pressed="${S.net===k}">${n}</button>`).join('');
+  const ON=S.net==='online',BT=S.net==='bot';
+  $('#netRow').innerHTML=[['local','Same phone'],['bot','vs Computer'],['online','Online']].map(([k,n])=>`<button class="chip" data-net="${k}" aria-pressed="${S.net===k}">${n}</button>`).join('');
   $('#netHelp').textContent=ON?'Each player uses their own phone. One creates a room and shares the 5-digit code, the other joins with it. Needs internet on both phones. The room creator’s settings are used.':'Both players share this phone, sitting on opposite sides.';
   $('#startBtn').hidden=ON;$('#onlineBar').hidden=!ON;
   $('#intro').textContent=ON?'Race a friend on their own phone, from anywhere.':'Lay the phone flat between two players, one on each side.';
-  $('#n1wrap').hidden=ON;$('#namesBox').classList.toggle('single',ON);$('#lblA').textContent=ON?'Your name':'Bottom player';
-  $('#sumLine').textContent=M?`${ord(S.cls)} std · ${LVN[S.lvl]} · Marathon ${S.mlen/60} min`:`${ord(S.cls)} std · ${LVN[S.lvl]} · ${S.time}s · ${S.count} questions`;
+  $('#n1wrap').hidden=ON||BT;$('#namesBox').classList.toggle('single',ON||BT);$('#lblA').textContent=(ON||BT)?'Your name':'Bottom player';
+  $('#cardBot').hidden=!BT;$('#botLabel').textContent=BOTL[S.bot];
+  $('#botRow').innerHTML=BOTL.map((n,i)=>`<button class="chip" data-bot="${i}" aria-pressed="${S.bot===i}">${n}</button>`).join('');
+  $('#botHelp').textContent=['Pip is just learning — makes mistakes and takes its time. Good for warming up.','Rex is steady and gets about 7 in 10 right. A fair match.','Nova is quick and sharp. Only the fast and accurate beat it.','Max is almost never wrong and answers fast. Can you beat the genius?'][S.bot];
+  if(BT)$('#intro').textContent='Play against the computer. You are at the bottom of the screen.';
+  $('#sumLine').textContent=(BT?'vs '+BOTL[S.bot]+' bot · ':'')+(M?`${ord(S.cls)} std · ${LVN[S.lvl]} · Marathon ${S.mlen/60} min`:`${ord(S.cls)} std · ${LVN[S.lvl]} · ${S.time}s · ${S.count} questions`);
 }
 $('#setup').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -793,6 +806,7 @@ $('#setup').addEventListener('click',e=>{
   else if(b.dataset.lvl)S.lvl=+b.dataset.lvl;
   else if(b.dataset.mode)S.mode=b.dataset.mode;
   else if(b.dataset.net)S.net=b.dataset.net;
+  else if(b.dataset.bot)S.bot=+b.dataset.bot;
   else if(b.dataset.mlen)S.mlen=+b.dataset.mlen;
   else if(b.dataset.time)S.time=+b.dataset.time;
   else if(b.dataset.count)S.count=+b.dataset.count;
@@ -823,6 +837,22 @@ const sBad=()=>beep(180,.22,'square',.07);
 const sTick=()=>beep(520,.08,'sine',.1);
 const sTime=()=>beep(240,.3,'triangle',.12);
 
+/* ---------- computer opponent ---------- */
+const BOTN=['Pip','Rex','Nova','Max'],BOTL=['Beginner','Average','Smart','Genius'];
+const BOT_ACC=[.5,.7,.86,.96],BOT_DUEL=[7.5,4.8,3.0,1.7],BOT_MARA=[9,5.5,3.4,2.0];
+const botF=()=>(0.7+0.15*S.lvl)*(0.85+0.03*S.cls);
+function botWait(fn,ms,id){const run=()=>{if(!G||G.id!==id)return;if(G.paused){setTimeout(run,300);return;}fn();};setTimeout(run,ms);}
+function botPick(opts,ans){const ai=opts.indexOf(ans);if(Math.random()<BOT_ACC[S.bot])return ai;const w=[0,1,2,3].filter(k=>k!==ai);return w[Math.floor(Math.random()*w.length)];}
+function botDuel(){
+  const n=G.n,id=G.id,ms=BOT_DUEL[S.bot]*botF()*(0.7+Math.random()*0.6)*1000;
+  if(ms>S.time*1000*0.92)return;
+  botWait(()=>{if(G.n!==n||G.phase!=='question'||G.locked[1])return;answer(1,botPick(G.cur.opts[1],G.cur.ans));},ms,id);
+}
+function botMarathon(){
+  const id=G.id,cur=G.m[1].cur,ms=BOT_MARA[S.bot]*botF()*(0.7+Math.random()*0.6)*1000;
+  botWait(()=>{if(G.phase!=='run'||G.m[1].cur!==cur||G.lock[1])return;answerM(1,botPick(cur.opts,cur.ans));},ms,id);
+}
+
 /* ---------- game ---------- */
 const P=[0,1].map(i=>{
   const root=$('#panel'+i);
@@ -842,9 +872,9 @@ function clearAll(){clearInterval(tick);tick=null;if(G){clearTimeout(G.to);}}
 function startGame(){
   if(!S.sel.length){toast('Pick at least one concept');return;}
   save();clearAll();
-  const nm=names();
-  G={id:++gid,mode:S.mode==='marathon'?'m':'d',n:0,total:S.count,scores:[0,0],correct:[0,0],times:[[],[]],last:null,seen:new Set(),phase:'ready',paused:false,locked:[false,false],cur:null,to:null,rem:0,deadline:0};
-  show('game');$('#game').classList.remove('online');$('#pauseBtn').innerHTML='&#10074;&#10074;';$('#setBtn').textContent='Settings';$('#againBtn').hidden=false;
+  const nm=names();if(S.net==='bot')nm[1]='🤖 '+BOTN[S.bot];
+  G={id:++gid,mode:S.mode==='marathon'?'m':'d',n:0,total:S.count,scores:[0,0],correct:[0,0],wrong:[0,0],times:[[],[]],last:null,seen:new Set(),phase:'ready',paused:false,locked:[false,false],cur:null,to:null,rem:0,deadline:0};
+  show('game');$('#game').classList.remove('online');$('#game').classList.toggle('solo',S.net==='bot');$('#pauseBtn').innerHTML='&#10074;&#10074;';$('#setBtn').textContent='Settings';$('#againBtn').hidden=false;
   $('#resBtns').hidden=true;$('#barWrap').hidden=false;$('#pauseBtn').hidden=false;
   $('#qn0').hidden=false;$('#qn1').hidden=false;
   P.forEach((p,i)=>{p.root.classList.remove('result');p.name.textContent=nm[i];p.score.textContent='0';p.time.textContent='';p.stats.innerHTML='';p.status.textContent='';p.status.className='pstatus';
@@ -881,6 +911,7 @@ function nextQuestion(){
   G.start=Date.now();G.rem=S.time*1000;G.deadline=G.start+G.rem;
   updateTime(G.rem);
   clearInterval(tick);tick=setInterval(onTick,50);
+  if(S.net==='bot')botDuel();
 }
 
 function updateTime(rem){
@@ -910,6 +941,7 @@ function nextQ(p){
   pn.q.className='qtext'+(r.q.length>46||r.q.split('\n').length>2?' long':'');
   pn.q.textContent=r.q;pn.status.textContent='';pn.status.className='pstatus';
   pn.opts.forEach((b,k)=>{b.textContent=m.cur.opts[k];b.className='opt';b.disabled=false;});
+  if(S.net==='bot'&&p===1)botMarathon();
 }
 function updStat(){
   $('#qn0').textContent=`✓ ${G.correct[0]}   ✗ ${G.wrong[0]}`;
@@ -963,7 +995,7 @@ function answer(p,i){
     btn.classList.add('correct');
     reveal('win',p,el);
   }else{
-    G.locked[p]=true;btn.classList.add('wrong');btn.disabled=true;
+    G.locked[p]=true;G.wrong[p]++;btn.classList.add('wrong');btn.disabled=true;
     G.scores[p]--;
     P[p].score.textContent=G.scores[p];
     P[p].opts.forEach(b=>{if(!b.classList.contains('wrong'))b.disabled=true;});
@@ -1014,8 +1046,8 @@ const hesc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const hofLoad=()=>{try{const d=JSON.parse(localStorage.getItem(HK));if(d&&d.r&&d.p)return d;}catch(e){}return {r:{},p:{}};};
 const hofSave=d=>{try{localStorage.setItem(HK,JSON.stringify(d));}catch(e){}};
 const validName=n=>{n=(n||'').trim();return(n&&!/^player [12]$/i.test(n)&&!/^(host|guest|friend)$/i.test(n))?n:'';};
-const chalKey=c=>[c.mode,c.cls,c.lvl,c.mode==='marathon'?c.mlen:c.count].join('|');
-const chalText=c=>`${ord(c.cls)} std · ${LVN[c.lvl]} · `+(c.mode==='marathon'?`Marathon ${c.mlen%60?c.mlen+' sec':(c.mlen/60)+' min'}`:`Duel ${c.count} questions`);
+const chalKey=c=>[c.mode,c.cls,c.lvl,c.mode==='marathon'?c.mlen:c.count].concat(c.bot==null?[]:['b'+c.bot]).join('|');
+const chalText=c=>`${ord(c.cls)} std · ${LVN[c.lvl]} · `+(c.mode==='marathon'?`Marathon ${c.mlen%60?c.mlen+' sec':(c.mlen/60)+' min'}`:`Duel ${c.count} questions`)+(c.bot==null?'':` · vs ${BOTL[c.bot]} bot`);
 const hofTop=(d,ck)=>Object.values(d.r).filter(x=>x.ck===ck).sort((a,b)=>b.sc-a.sc||a.w-b.w||a.t-b.t);
 function hofAdd(name,c,sc,cr,wr,won){
   const d=hofLoad(),ck=chalKey(c),nm=validName(name),top=hofTop(d,ck)[0];let out='';
@@ -1029,7 +1061,7 @@ function hofAdd(name,c,sc,cr,wr,won){
 }
 let hofTab=1;
 function hofRender(){
-  const d=hofLoad(),M=S.mode==='marathon',c={mode:M?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count};
+  const d=hofLoad(),M=S.mode==='marathon',c={mode:M?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count,bot:S.net==='bot'?S.bot:undefined};
   $('#hofSub').textContent=hofTab===1?chalText(c)+' — change the settings to see other boards':'All players on this phone';
   $('#hofT1').setAttribute('aria-pressed',hofTab===1);$('#hofT2').setAttribute('aria-pressed',hofTab===2);
   const medal=i=>['🥇','🥈','🥉'][i]||(i+1);
@@ -1050,7 +1082,7 @@ function endGame(){
   P.forEach((p,i)=>{
     p.root.classList.add('result');
     p.q.className='qtext';
-    p.q.textContent=w===-1?'🤝 It’s a draw!':w===i?'🏆 You win!':'Good game!';
+    p.q.textContent=w===-1?'🤝 It’s a draw!':w===i?(S.net==='bot'&&i===1?'🤖 The computer wins!':'🏆 You win!'):'Good game!';
     p.status.textContent='';
     p.time.textContent='';
     p.score.textContent=G.scores[i];
@@ -1059,11 +1091,11 @@ function endGame(){
       p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Accuracy <b>${att?Math.round(100*G.correct[i]/att)+'%':'–'}</b></div>`;
     }else
     p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Average speed <b>${avg(i)}</b></div>`;
-    p.stats.innerHTML+=hofAdd(S.names[i],{mode:G.mode==='m'?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count},G.correct[i]-G.wrong[i],G.correct[i],G.wrong[i],w===i);
+    if(!(S.net==='bot'&&i===1))p.stats.innerHTML+=hofAdd(S.names[i],{mode:G.mode==='m'?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count,bot:S.net==='bot'?S.bot:undefined},G.correct[i]-G.wrong[i],G.correct[i],G.wrong[i],w===i);
   });
   $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
-  if(w!==-1)celebrate(w);
+  if(w!==-1&&!(S.net==='bot'&&w===1))celebrate(w);
 }
 
 function pauseGame(){
@@ -1399,7 +1431,7 @@ function startOnline(){
   clearInterval(tick);G=null;
   const g=O.g={id:++gid,mode:cfg.mode,me,live:true,over:false,scores:[0,0],correct:[0,0],wrong:[0,0],times:[[],[]],n:0,last:null,seen:new Set(),phase:'ready',locked:[false,false],to:null,myLocked:false,picked:-1,sent:false,
     stat:{c:[0,0],w:[0,0],sc:[0,0]},myDone:false,oppDone:false,m:{last:null,seen:new Set()},lock:false};
-  show('game');$('#game').classList.add('online');$('#netOv').hidden=true;$('#pauseOv').hidden=true;
+  show('game');$('#game').classList.add('online');$('#game').classList.remove('solo');$('#netOv').hidden=true;$('#pauseOv').hidden=true;
   $('#resBtns').hidden=true;$('#barWrap').hidden=false;$('#pauseBtn').hidden=false;$('#pauseBtn').textContent='✕';
   $('#qn0').hidden=false;$('#qn1').hidden=true;$('#qn0').textContent='';
   qbar(1,false);
