@@ -146,6 +146,21 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 @keyframes winPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(0,209,255,0)}50%{box-shadow:inset 0 0 40px 6px rgba(0,209,255,.55)}}
 @keyframes glowIn{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}.panel.result.win,.panel.result.win .qtext,.panel.result.win .score{animation:none}}
+.rec{margin:6px 0 2px;padding:6px 10px;border-radius:10px;background:#ffd60a;color:#000;font-weight:800;animation:winPop .8s cubic-bezier(.2,1.6,.4,1) both}
+.recTo{margin:6px 0 2px;font-size:13px;color:#8aa0ab}
+.hofBtn{margin-top:8px}
+#hofOv .dialog{max-width:380px;max-height:86vh;overflow:auto;text-align:left}
+#hofOv h3{text-align:center}
+#hofOv .hSub{font-size:12px;color:#8aa0ab;text-align:center;margin:-6px 0 10px}
+#hofOv .tabs{display:flex;gap:8px}#hofOv .tabs button{margin-top:0;min-height:40px;font-size:14px}
+#hofOv .tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#hofOv ol{list-style:none;margin:12px 0 0;padding:0}
+#hofOv li{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:15px}
+#hofOv li .rk{width:30px;font-weight:800;text-align:center}
+#hofOv li .nm{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hofOv li small{display:block;font-weight:400;color:#8aa0ab;font-size:12px}
+#hofOv li .pt{font-weight:800;color:var(--accent);font-size:18px}
+#hofOv .empty{text-align:center;color:#8aa0ab;padding:18px 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -232,6 +247,7 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
       <button class="start" id="createBtn">Create a room</button>
       <button class="start alt" id="joinBtn">Join a friend’s room</button>
     </div>
+    <button class="start alt hofBtn" id="hofBtn">🏆 Toppers</button>
     <small id="sumLine"></small>
   </div>
 </main>
@@ -281,6 +297,15 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
   </div></div>
 </main>
 
+<div class="overlay" id="hofOv" hidden style="z-index:30">
+  <div class="dialog">
+    <h3>🏆 Toppers</h3>
+    <p class="hSub" id="hofSub"></p>
+    <div class="tabs"><button id="hofT1" aria-pressed="true">Top scores</button><button id="hofT2" aria-pressed="false">Most wins</button></div>
+    <ol id="hofList"></ol>
+    <button class="main" id="hofClose">Close</button>
+  </div>
+</div>
 <div class="overlay" id="netOv" hidden>
   <div class="dialog">
     <h3 id="netOvTitle"></h3>
@@ -983,6 +1008,40 @@ function celebrate(i){
     if(navigator.vibrate)navigator.vibrate([80,60,80,60,160]);
   }catch(e){}
 }
+/* ---- toppers (saved on this phone, only for players who enter a name) ---- */
+const HK='mathduel.hof.v1';
+const hesc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hofLoad=()=>{try{const d=JSON.parse(localStorage.getItem(HK));if(d&&d.r&&d.p)return d;}catch(e){}return {r:{},p:{}};};
+const hofSave=d=>{try{localStorage.setItem(HK,JSON.stringify(d));}catch(e){}};
+const validName=n=>{n=(n||'').trim();return(n&&!/^player [12]$/i.test(n)&&!/^(host|guest|friend)$/i.test(n))?n:'';};
+const chalKey=c=>[c.mode,c.cls,c.lvl,c.mode==='marathon'?c.mlen:c.count].join('|');
+const chalText=c=>`${ord(c.cls)} std · ${LVN[c.lvl]} · `+(c.mode==='marathon'?`Marathon ${c.mlen%60?c.mlen+' sec':(c.mlen/60)+' min'}`:`Duel ${c.count} questions`);
+const hofTop=(d,ck)=>Object.values(d.r).filter(x=>x.ck===ck).sort((a,b)=>b.sc-a.sc||a.w-b.w||a.t-b.t);
+function hofAdd(name,c,sc,cr,wr,won){
+  const d=hofLoad(),ck=chalKey(c),nm=validName(name),top=hofTop(d,ck)[0];let out='';
+  if(!nm){return top?`<div class="recTo">Record to beat: ${hesc(top.name)} · ${top.sc}</div>`:'';}
+  const l=nm.toLowerCase(),pl=d.p[l]||(d.p[l]={name:nm,g:0,w:0});pl.name=nm;pl.g++;if(won)pl.w++;
+  if(sc>0&&(!top||sc>top.sc))out='<div class="rec">🏅 NEW RECORD!</div>';
+  else if(top)out=`<div class="recTo">Record to beat: ${hesc(top.name)} · ${top.sc}</div>`;
+  const k=l+'|'+ck,old=d.r[k];
+  if(sc>0&&(!old||sc>old.sc))d.r[k]={ck,name:nm,sc,c:cr,w:wr,t:Date.now()};
+  hofSave(d);return out;
+}
+let hofTab=1;
+function hofRender(){
+  const d=hofLoad(),M=S.mode==='marathon',c={mode:M?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count};
+  $('#hofSub').textContent=hofTab===1?chalText(c)+' — change the settings to see other boards':'All players on this phone';
+  $('#hofT1').setAttribute('aria-pressed',hofTab===1);$('#hofT2').setAttribute('aria-pressed',hofTab===2);
+  const medal=i=>['🥇','🥈','🥉'][i]||(i+1);
+  let rows;
+  if(hofTab===1)rows=hofTop(d,chalKey(c)).slice(0,10).map((x,i)=>`<li><span class="rk">${medal(i)}</span><span class="nm">${hesc(x.name)}<small>✓ ${x.c} − ✗ ${x.w}</small></span><span class="pt">${x.sc}</span></li>`);
+  else rows=Object.values(d.p).sort((a,b)=>b.w-a.w||a.g-b.g).slice(0,10).map((x,i)=>`<li><span class="rk">${medal(i)}</span><span class="nm">${hesc(x.name)}<small>${x.g} played</small></span><span class="pt">${x.w} wins</span></li>`);
+  $('#hofList').innerHTML=rows.length?rows.join(''):'<div class="empty">No records yet.<br>Enter your name and play to take the top spot!</div>';
+}
+$('#hofBtn').addEventListener('click',()=>{hofTab=1;hofRender();$('#hofOv').hidden=false;});
+$('#hofClose').addEventListener('click',()=>{$('#hofOv').hidden=true;});
+$('#hofT1').addEventListener('click',()=>{hofTab=1;hofRender();});
+$('#hofT2').addEventListener('click',()=>{hofTab=2;hofRender();});
 const calcHTML=(c,w)=>`<div class="calc">✓ ${c} correct − ✗ ${w} wrong = <b>${c-w}</b> points</div>`;
 function endGame(){
   clearAll();G.phase='end';
@@ -1000,6 +1059,7 @@ function endGame(){
       p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Accuracy <b>${att?Math.round(100*G.correct[i]/att)+'%':'–'}</b></div>`;
     }else
     p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Average speed <b>${avg(i)}</b></div>`;
+    p.stats.innerHTML+=hofAdd(S.names[i],{mode:G.mode==='m'?'marathon':'duel',cls:S.cls,lvl:S.lvl,mlen:S.mlen,count:S.count},G.correct[i]-G.wrong[i],G.correct[i],G.wrong[i],w===i);
   });
   $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
@@ -1182,7 +1242,7 @@ const O={peer:null,conn:null,role:null,names:['',''],cfg:null,g:null,tick:null,c
 
 const myName=()=>{const n=(S.names[0]||'').trim();return (n&&n!=='Player 1')?n:(O.role==='guest'?'Guest':'Host');};
 const oppName=()=>O.names[O.role==='host'?1:0]||'Friend';
-const cfgText=c=>`${ord(c.cls)} std · ${LVN[c.lvl]} · `+(c.mode==='marathon'?`Marathon ${c.mlen/60} min`:`Duel · ${c.time}s · ${c.count} questions`);
+const cfgText=c=>`${ord(c.cls)} std · ${LVN[c.lvl]} · `+(c.mode==='marathon'?`Marathon ${c.mlen%60?c.mlen+' sec':(c.mlen/60)+' min'}`:`Duel · ${c.time}s · ${c.count} questions`);
 const netSend=m=>{try{if(O.conn&&O.conn.open)O.conn.send(JSON.stringify(m));}catch(e){}};
 const lbMsg=t=>{$('#lbMsg').textContent=t;};
 const qbar=(frac,low)=>{$('#barFill').style.width=(Math.max(0,Math.min(1,frac))*100)+'%';$('#barFill').classList.toggle('low',!!low);};
@@ -1540,6 +1600,7 @@ function showEnd(res){
   P.forEach(p=>{p.root.classList.add('result');p.status.textContent='';p.time.textContent='';});
   P[0].q.className='qtext';P[0].q.textContent=a>b?'🏆 You win!':a<b?'Good game!':'🤝 It’s a draw!';
   P[0].score.textContent=a;P[0].stats.innerHTML=stats(me);
+  P[0].stats.innerHTML+=hofAdd(myName(),{mode:O.cfg.mode,cls:O.cfg.cls,lvl:O.cfg.lvl,mlen:O.cfg.mlen,count:O.cfg.count},a,res.correct[me],res.wrong[me],a>b);
   P[1].q.className='qtext';P[1].q.textContent=oppName();
   P[1].score.textContent=b;P[1].stats.innerHTML=stats(opp);
   $('#barWrap').hidden=true;$('#qn0').hidden=true;$('#pauseBtn').hidden=true;
