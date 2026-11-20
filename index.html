@@ -132,6 +132,20 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 @keyframes sUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes sLoad{to{transform:none}}
 .calc{font-size:15px;margin:4px 0 6px;padding:6px 10px;border:1px solid var(--accent);border-radius:10px;color:var(--ink)}.calc b{color:var(--accent);font-size:19px}.ruleNote{display:block;font-size:12px;color:#8aa0ab;margin:2px 0}
+.panel{position:relative;overflow:hidden}
+.panel:not(.result) .confetti,.panel:not(.result) .winGlow{display:none}
+.panel.result.win{animation:winPulse 1.4s ease-in-out 3}
+.panel.result.win .qtext{animation:winPop 1s cubic-bezier(.2,1.6,.4,1) both,winWob 1.6s 1s ease-in-out 3}
+.panel.result.win .score{animation:winBeat .8s ease-in-out 4}
+.winGlow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(0,209,255,.35),transparent 65%);animation:glowIn 1.2s ease both}
+.confetti{position:absolute;top:-14px;width:9px;height:14px;pointer-events:none;border-radius:2px;opacity:0;animation:fall var(--d) linear var(--dl) 3 both}
+@keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:1;transform:translateY(105vh) translateX(var(--x)) rotate(var(--r))}}
+@keyframes winPop{0%{transform:scale(.2) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}
+@keyframes winWob{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-3deg) scale(1.06)}75%{transform:rotate(3deg) scale(1.06)}}
+@keyframes winBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+@keyframes winPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(0,209,255,0)}50%{box-shadow:inset 0 0 40px 6px rgba(0,209,255,.55)}}
+@keyframes glowIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.panel.result.win,.panel.result.win .qtext,.panel.result.win .score{animation:none}}
 </style>
 </head>
 <body>
@@ -956,6 +970,19 @@ function reveal(kind,w,el){
   G.to=setTimeout(()=>{if(G&&G.id===myId)nextQuestion();},1500);
 }
 
+/* celebration for the winner's panel */
+function celebrate(i){
+  try{
+    P.forEach(p=>{p.root.classList.remove('win');p.root.querySelectorAll('.confetti,.winGlow').forEach(n=>n.remove());});
+    const r=P[i].root;r.classList.add('win');
+    const g=document.createElement('div');g.className='winGlow';r.appendChild(g);
+    const cols=['#00d1ff','#ffffff','#ffd60a','#22c55e','#ff4d8d','#a78bfa'];
+    for(let k=0;k<46;k++){const c=document.createElement('i');c.className='confetti';
+      c.style.cssText='left:'+(Math.random()*100)+'%;background:'+cols[k%cols.length]+';--d:'+(2.2+Math.random()*2)+'s;--dl:'+(Math.random()*1.2)+'s;--x:'+(Math.random()*120-60)+'px;--r:'+(360+Math.random()*540)+'deg';
+      r.appendChild(c);}
+    if(navigator.vibrate)navigator.vibrate([80,60,80,60,160]);
+  }catch(e){}
+}
 const calcHTML=(c,w)=>`<div class="calc">✓ ${c} correct − ✗ ${w} wrong = <b>${c-w}</b> points</div>`;
 function endGame(){
   clearAll();G.phase='end';
@@ -976,6 +1003,7 @@ function endGame(){
   });
   $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
+  if(w!==-1)celebrate(w);
 }
 
 function pauseGame(){
@@ -1518,6 +1546,7 @@ function showEnd(res){
   $('#againBtn').hidden=O.role!=='host'||!O.conn;
   $('#setBtn').textContent='Leave';$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
+  if(a!==b)celebrate(a>b?0:1);
 }
 function askLeave(){
   if(!O.g)return;
