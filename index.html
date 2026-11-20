@@ -131,6 +131,7 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 #splash .sNote{position:absolute;left:24px;right:24px;bottom:calc(22px + env(safe-area-inset-bottom));color:#8aa0ab;font-size:12px;line-height:1.5;animation:sUp .7s .6s ease both}
 @keyframes sUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes sLoad{to{transform:none}}
+.calc{font-size:15px;margin:4px 0 6px;padding:6px 10px;border:1px solid var(--accent);border-radius:10px;color:var(--ink)}.calc b{color:var(--accent);font-size:19px}.ruleNote{display:block;font-size:12px;color:#8aa0ab;margin:2px 0}
 </style>
 </head>
 <body>
@@ -206,7 +207,7 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
     <div class="card">
       <h2>Options</h2>
       <div class="row">
-        <button class="chip" id="optPen" aria-pressed="false">Wrong answer: &minus;1 point</button>
+        <span class="ruleNote">Scoring: correct +1 · wrong −1 · most points wins</span>
         <button class="chip" id="optSnd" aria-pressed="true">Sound</button>
       </div>
     </div>
@@ -732,7 +733,6 @@ function renderSetup(){
   const av=avail();
   $('#conRow').innerHTML=av.map(k=>`<button class="chip" data-con="${k.id}" aria-pressed="${S.sel.includes(k.id)}">${k.name}</button>`).join('');
   $('#conCount').textContent=S.sel.length+' of '+av.length+' selected';
-  $('#optPen').setAttribute('aria-pressed',S.pen);
   $('#optSnd').setAttribute('aria-pressed',S.snd);
   const M=S.mode==='marathon';
   $('#modeRow').innerHTML=[['duel','Duel'],['marathon','Marathon']].map(([k,n])=>`<button class="chip" data-mode="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
@@ -760,7 +760,6 @@ $('#setup').addEventListener('click',e=>{
   else if(b.dataset.con){const id=b.dataset.con;S.sel=S.sel.includes(id)?S.sel.filter(x=>x!==id):S.sel.concat(id);}
   else if(b.id==='selAll')S.sel=avail().map(k=>k.id);
   else if(b.id==='selNone')S.sel=[];
-  else if(b.id==='optPen')S.pen=!S.pen;
   else if(b.id==='optSnd')S.snd=!S.snd;
   else return;
   save();renderSetup();
@@ -891,7 +890,7 @@ function answerM(p,i){
   P[p].opts.forEach(b=>{b.disabled=true;});
   if(ok){G.scores[p]++;G.correct[p]++;btn.classList.add('correct');sGood();}
   else{
-    G.wrong[p]++;if(S.pen)G.scores[p]=Math.max(0,G.scores[p]-1);
+    G.wrong[p]++;G.scores[p]--;
     btn.classList.add('wrong');
     P[p].opts.forEach(b=>{if(b.textContent===m.cur.ans)b.classList.add('correct');});
     sBad();buzz(60);
@@ -926,10 +925,10 @@ function answer(p,i){
     reveal('win',p,el);
   }else{
     G.locked[p]=true;btn.classList.add('wrong');btn.disabled=true;
-    if(S.pen)G.scores[p]=Math.max(0,G.scores[p]-1);
+    G.scores[p]--;
     P[p].score.textContent=G.scores[p];
     P[p].opts.forEach(b=>{if(!b.classList.contains('wrong'))b.disabled=true;});
-    P[p].status.textContent=S.pen?'Wrong  −1':'Wrong — wait for next';P[p].status.className='pstatus bad';
+    P[p].status.textContent='Wrong  −1';P[p].status.className='pstatus bad';
     sBad();buzz(60);
     if(G.locked[0]&&G.locked[1])reveal('both');
   }
@@ -947,7 +946,7 @@ function reveal(kind,w,el){
     p.opts.forEach(b=>{b.disabled=true;if(b.textContent===G.cur.ans)b.classList.add('correct');});
     if(kind==='win'){
       if(i===w){p.status.textContent=`+1  Correct!  ${el.toFixed(1)}s`;p.status.className='pstatus good';}
-      else{p.status.textContent=G.locked[i]?(S.pen?'Wrong  −1':'Wrong'):'Too slow';p.status.className='pstatus bad';}
+      else{p.status.textContent=G.locked[i]?'Wrong  −1':'Too slow';p.status.className='pstatus bad';}
     }else{
       p.status.textContent=kind==='time'?'Time up!':'No one got it';p.status.className='pstatus bad';
     }
@@ -957,6 +956,7 @@ function reveal(kind,w,el){
   G.to=setTimeout(()=>{if(G&&G.id===myId)nextQuestion();},1500);
 }
 
+const calcHTML=(c,w)=>`<div class="calc">✓ ${c} correct − ✗ ${w} wrong = <b>${c-w}</b> points</div>`;
 function endGame(){
   clearAll();G.phase='end';
   const [a,b]=G.scores;const w=a>b?0:b>a?1:-1;
@@ -970,9 +970,9 @@ function endGame(){
     p.score.textContent=G.scores[i];
     if(G.mode==='m'){
       const att=G.correct[i]+G.wrong[i];
-      p.stats.innerHTML=`<div>Score <b>${G.scores[i]}</b> – ${G.scores[1-i]}</div><div>Correct <b>${G.correct[i]}</b> · Wrong <b>${G.wrong[i]}</b></div><div>Accuracy <b>${att?Math.round(100*G.correct[i]/att)+'%':'–'}</b></div>`;
+      p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Accuracy <b>${att?Math.round(100*G.correct[i]/att)+'%':'–'}</b></div>`;
     }else
-    p.stats.innerHTML=`<div>Score <b>${G.scores[i]}</b> – ${G.scores[1-i]}</div><div>Correct answers <b>${G.correct[i]}</b> / ${G.total}</div><div>Average speed <b>${avg(i)}</b></div>`;
+    p.stats.innerHTML=calcHTML(G.correct[i],G.wrong[i])+`<div>Average speed <b>${avg(i)}</b></div>`;
   });
   $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
@@ -1384,7 +1384,7 @@ function hostAnswer(p,i,n){
     hostReveal('win',p,el);
   }else{
     g.locked[p]=true;g.wrong[p]++;
-    if(cfg.pen)g.scores[p]=Math.max(0,g.scores[p]-1);
+    g.scores[p]--;
     const msg={t:'lock',p,sc:g.scores[p]};
     netSend(msg);onLock(msg);
     if(g.locked[0]&&g.locked[1])hostReveal('both');
@@ -1395,12 +1395,12 @@ function onLock(m){
   if(m.p===g.me){
     g.myLocked=true;
     P[0].opts.forEach((b,k)=>{b.disabled=true;if(k===g.picked){b.classList.remove('sel');b.classList.add('wrong');}});
-    P[0].status.textContent=O.cfg.pen?'Wrong  −1':'Wrong — wait for next';P[0].status.className='pstatus bad';
-    if(O.cfg.pen&&m.sc!=null)P[0].score.textContent=m.sc;
+    P[0].status.textContent='Wrong  −1';P[0].status.className='pstatus bad';
+    if(m.sc!=null)P[0].score.textContent=m.sc;
     sBad();buzz(60);
   }else{
     P[1].time.textContent='✗ locked out';
-    if(O.cfg.pen&&m.sc!=null)P[1].score.textContent=m.sc;
+    if(m.sc!=null)P[1].score.textContent=m.sc;
   }
 }
 function hostReveal(kind,w,el){
@@ -1423,7 +1423,7 @@ function showReveal(m){
   const lockedMe=!!(m.lock&&m.lock[me]);
   if(m.kind==='win'){
     if(m.w===me){P[0].status.textContent=`+1  Correct!  ${m.el}s`;P[0].status.className='pstatus good';sGood();buzz(30);}
-    else{P[0].status.textContent=lockedMe?(O.cfg.pen?'Wrong  −1':'Wrong'):'Too slow';P[0].status.className='pstatus bad';}
+    else{P[0].status.textContent=lockedMe?'Wrong  −1':'Too slow';P[0].status.className='pstatus bad';}
     P[1].time.textContent=m.w===opp?'✓ got it':'';
   }else{
     P[0].status.textContent=m.kind==='time'?'Time up!':'No one got it';P[0].status.className='pstatus bad';
@@ -1464,7 +1464,7 @@ function mAnswer(i){
   P[0].opts.forEach(b=>{b.disabled=true;});
   if(ok){g.stat.c[me]++;g.stat.sc[me]++;btn.classList.add('correct');sGood();}
   else{
-    g.stat.w[me]++;if(O.cfg.pen)g.stat.sc[me]=Math.max(0,g.stat.sc[me]-1);
+    g.stat.w[me]++;g.stat.sc[me]--;
     btn.classList.add('wrong');P[0].opts.forEach(b=>{if(b.textContent===g.mcur.ans)b.classList.add('correct');});
     sBad();buzz(60);
   }
@@ -1505,9 +1505,9 @@ function showEnd(res){
   const stats=i=>{
     if(res.mode==='marathon'){
       const att=res.correct[i]+res.wrong[i];
-      return `<div>Score <b>${res.scores[i]}</b></div><div>Correct <b>${res.correct[i]}</b> · Wrong <b>${res.wrong[i]}</b></div><div>Accuracy <b>${att?Math.round(100*res.correct[i]/att)+'%':'–'}</b></div>`;
+      return calcHTML(res.correct[i],res.wrong[i])+`<div>Accuracy <b>${att?Math.round(100*res.correct[i]/att)+'%':'–'}</b></div>`;
     }
-    return `<div>Score <b>${res.scores[i]}</b></div><div>Correct answers <b>${res.correct[i]}</b> / ${res.total}</div><div>Average speed <b>${res.avg&&res.avg[i]!=null?res.avg[i]+'s':'–'}</b></div>`;
+    return calcHTML(res.correct[i],res.wrong[i])+`<div>Average speed <b>${res.avg&&res.avg[i]!=null?res.avg[i]+'s':'–'}</b></div>`;
   };
   P.forEach(p=>{p.root.classList.add('result');p.status.textContent='';p.time.textContent='';});
   P[0].q.className='qtext';P[0].q.textContent=a>b?'🏆 You win!':a<b?'Good game!':'🤝 It’s a draw!';
