@@ -13,6 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
 :root{
@@ -1104,18 +1105,22 @@ $('#hofT1').addEventListener('click',()=>{hofTab=1;hofRender();});
 $('#hofT2').addEventListener('click',()=>{hofTab=2;hofRender();});
 /* ---------- group tournament (knockout on one phone) ---------- */
 const TK='mathduel.tour.v1';
-let TL=[];
+let TL=[],TPM='manual';
 try{T=JSON.parse(localStorage.getItem(TK));if(T&&T.phase){T.playing=false;}else T=null;}catch(e){T=null;}
 const tSave=()=>{try{T?localStorage.setItem(TK,JSON.stringify(T)):localStorage.removeItem(TK);}catch(e){}};
 const tRoundsFor=n=>Math.max(1,Math.ceil(Math.log2(n)));
 function tMake(alive){
+  if(T.pairMode==='random'||alive.length<=2){tMakeRandom(alive);T.stage=null;return;}
+  T.stage='pair';T.pend={alive:alive.slice(),pairs:[],bye:null,sel:[]};T.m=[];
+}
+function tMakeRandom(alive){
   const a=shuffle(alive);let bye=null;
   if(a.length%2){const c=a.filter(i=>!T.players[i].bye);const pool=c.length?c:a;bye=pool[Math.floor(Math.random()*pool.length)];a.splice(a.indexOf(bye),1);}
   T.m=[];for(let i=0;i<a.length;i+=2)T.m.push({a:a[i],b:a[i+1],win:null,d:0});
   if(bye!=null){T.players[bye].bye=1;T.m.push({a:bye,b:null,win:bye,bye:1,d:0});}
 }
 function tStart(){
-  T={phase:'bracket',round:1,total:tRoundsFor(TL.length),players:TL.map(n=>({n,pts:0,w:0,out:0,bye:0})),playing:false,orig:S.names.slice(),m:[]};
+  T={pairMode:TPM,stage:null,phase:'bracket',round:1,total:tRoundsFor(TL.length),players:TL.map(n=>({n,pts:0,w:0,out:0,bye:0})),playing:false,orig:S.names.slice(),m:[]};
   tMake(T.players.map((_,i)=>i));tSave();tRender();
 }
 function tDoneRound(){
@@ -1147,6 +1152,34 @@ function tConfetti(box){
   for(let k=0;k<40;k++){const c=document.createElement('i');c.className='confetti';
     c.style.cssText='left:'+(Math.random()*100)+'%;background:'+cols[k%cols.length]+';--d:'+(2.4+Math.random()*2)+'s;--dl:'+(Math.random()*1.2)+'s;--x:'+(Math.random()*120-60)+'px;--r:'+(360+Math.random()*540)+'deg';box.appendChild(c);}
 }
+function tPairView(box){
+  const Q=T.pend,pl=T.players,nm=i=>hesc(pl[i].n);
+  const used=new Set(Q.pairs.flat().concat(Q.bye==null?[]:[Q.bye]));
+  const free=Q.alive.filter(i=>!used.has(i)),odd=Q.alive.length%2===1;
+  box.innerHTML=`<h3>🏟 Round ${T.round} of ${T.total}</h3>
+    <p class="tSub">Choose who plays whom. Tap two players, then <b>Pair them</b>.${odd?' With an odd number, one player gets a bye (goes straight through).':''}</p>
+    ${Q.pairs.map((pr,k)=>`<div class="tMatch"><span class="tv">${nm(pr[0])} vs ${nm(pr[1])}</span><button data-unpair="${k}" aria-label="Remove pair">✕</button></div>`).join('')}
+    ${Q.bye!=null?`<div class="tMatch"><span class="tv">${nm(Q.bye)}<small>Bye — goes straight through</small></span><button data-unbye="1" aria-label="Remove bye">✕</button></div>`:''}
+    <div class="tSub" style="margin:12px 0 0;text-align:left">${free.length?'Not paired yet:':'Everyone is paired.'}</div>
+    <div class="tChips">${free.map(i=>`<button class="chip" data-pick="${i}" aria-pressed="${Q.sel.includes(i)}">${nm(i)}</button>`).join('')}</div>
+    <div class="btnrow"><button id="tPairBtn" ${Q.sel.length===2?'':'disabled'}>Pair them</button>${odd&&Q.bye==null?`<button id="tByeBtn" ${Q.sel.length===1?'':'disabled'}>Give bye</button>`:''}</div>
+    <div class="btnrow"><button id="tAuto" ${free.length?'':'disabled'}>Auto-pair the rest</button></div>
+    <div class="btnrow"><button id="tEnd">End tournament</button><button class="main" id="tGo" ${free.length?'disabled':''}>Start round</button></div>`;
+  box.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const i=+b.dataset.pick,k=Q.sel.indexOf(i);if(k>=0)Q.sel.splice(k,1);else{if(Q.sel.length>=2)Q.sel.shift();Q.sel.push(i);}tSave();tRender();});
+  box.querySelectorAll('[data-unpair]').forEach(b=>b.onclick=()=>{Q.pairs.splice(+b.dataset.unpair,1);Q.sel=[];tSave();tRender();});
+  box.querySelectorAll('[data-unbye]').forEach(b=>b.onclick=()=>{Q.bye=null;Q.sel=[];tSave();tRender();});
+  $('#tPairBtn').onclick=()=>{if(Q.sel.length===2){Q.pairs.push(Q.sel.slice());Q.sel=[];tSave();tRender();}};
+  if($('#tByeBtn'))$('#tByeBtn').onclick=()=>{if(Q.sel.length===1){Q.bye=Q.sel[0];Q.sel=[];tSave();tRender();}};
+  $('#tAuto').onclick=()=>{
+    let f=shuffle(free);
+    if(odd&&Q.bye==null){f.sort((x,y)=>pl[x].bye-pl[y].bye);Q.bye=f.shift();f=shuffle(f);}
+    while(f.length>1)Q.pairs.push([f.shift(),f.shift()]);Q.sel=[];tSave();tRender();};
+  $('#tGo').onclick=()=>{
+    T.m=Q.pairs.map(pr=>({a:pr[0],b:pr[1],win:null,d:0}));
+    if(Q.bye!=null){pl[Q.bye].bye=1;T.m.push({a:Q.bye,b:null,win:Q.bye,bye:1,d:0});}
+    T.stage=null;T.pend=null;tSave();tRender();};
+  $('#tEnd').onclick=()=>{if(confirm('End this tournament? The standings will be lost.')){T=null;TL=[];tSave();tRender();}};
+}
 function tRender(){
   const box=$('#tourBox');
   if(!T){
@@ -1154,12 +1187,15 @@ function tRender(){
       <p class="tSub">Everyone plays a quick Duel on this phone, two at a time. Winners go through to the next round until one champion is left. At the end you see the full ranking, top to bottom.<br>Uses your current class, level and game mode.</p>
       <div class="tAdd"><input id="tIn" maxlength="14" placeholder="Player name" autocomplete="off"><button class="main" id="tAddBtn">Add</button></div>
       <div class="tChips">${TL.map((n,i)=>`<span class="tChip">${hesc(n)}<button data-rm="${i}" aria-label="Remove">✕</button></span>`).join('')||'<span class="tSub" style="margin:0">Add at least 2 players.</span>'}</div>
-      <p class="tSub">${TL.length} player${TL.length===1?'':'s'}${TL.length>1?' · '+tRoundsFor(TL.length)+' round'+(tRoundsFor(TL.length)>1?'s':''):''}</p>
+      <div class="tSub" style="margin:0 0 6px">Pairing</div>
+      <div class="row" id="tPm"><button class="chip" data-pm="manual" aria-pressed="${TPM==='manual'}">I choose the pairs</button><button class="chip" data-pm="random" aria-pressed="${TPM==='random'}">Random</button></div>
+      <p class="tSub" style="margin-top:10px">${TL.length} player${TL.length===1?'':'s'}${TL.length>1?' · '+tRoundsFor(TL.length)+' round'+(tRoundsFor(TL.length)>1?'s':''):''}</p>
       <div class="btnrow"><button id="tClose">Close</button><button class="main" id="tStartBtn" ${TL.length<2?'disabled':''}>Start tournament</button></div>`;
     const add=()=>{const v=$('#tIn').value.trim().slice(0,14);if(!v)return;if(TL.some(n=>n.toLowerCase()===v.toLowerCase())){toast('That name is already added');return;}if(TL.length>=64){toast('Maximum 64 players');return;}TL.push(v);tRender();$('#tIn').focus();};
     $('#tAddBtn').onclick=add;$('#tIn').onkeydown=e=>{if(e.key==='Enter')add();};
     box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{TL.splice(+b.dataset.rm,1);tRender();});
     $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};
+    box.querySelectorAll('[data-pm]').forEach(b=>b.onclick=()=>{TPM=b.dataset.pm;tRender();});
     $('#tStartBtn').onclick=tStart;return;
   }
   if(T.phase==='final'){
@@ -1173,6 +1209,7 @@ function tRender(){
     $('#tNew').onclick=()=>{T=null;TL=[];tSave();tRender();};
     $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};return;
   }
+  if(T.stage==='pair'){tPairView(box);return;}
   const left=T.m.filter(m=>m.win==null).length;
   box.innerHTML=`<h3>🏟 Round ${T.round} of ${T.total}</h3>
     <p class="tSub">${left} match${left===1?'':'es'} left in this round${T.round===T.total?' — this is the final!':''}. Lay the phone flat between the two players.</p>
