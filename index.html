@@ -17,6 +17,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
 :root{
@@ -295,6 +296,7 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
     <button class="start alt hofBtn" id="hofBtn">🏆 Toppers</button>
     <button class="start alt hofBtn" id="tourBtn">🏟 Group tournament</button>
     <small id="sumLine"></small>
+    <small id="verTag" style="display:block;opacity:.55;margin-top:4px">Version 17</small>
   </div>
 </main>
 
@@ -1847,6 +1849,9 @@ function goFS(){try{if(matchMedia('(display-mode: fullscreen)').matches||matchMe
   if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});}catch(e){}}
 ['startBtn','createBtn','goBtn','lbStart','againBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',goFS,true);});
 </script>
-<script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+<script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+var hadCtl=!!navigator.serviceWorker.controller;
+navigator.serviceWorker.addEventListener('controllerchange',function(){var st=document.getElementById('setup');if(hadCtl&&!window.__rl&&st&&!st.hidden){window.__rl=1;location.reload();}});
+window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update();document.addEventListener('visibilitychange',function(){if(!document.hidden)r.update();});}).catch(function(){});});}</script>
 </body>
 </html>
