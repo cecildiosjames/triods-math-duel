@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
 :root{
@@ -164,6 +165,27 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 #hofOv .empty{text-align:center;color:#8aa0ab;padding:18px 0;font-size:14px}
 .solo .panel.p2{transform:none}.solo #panel1 .opt{pointer-events:none}
 #cardBot .help{margin:10px 0 0;font-size:13px}
+#tourOv .dialog{max-width:400px;max-height:90vh;overflow:auto;text-align:left;position:relative}
+#tourOv h3{text-align:center;margin-bottom:4px}
+#tourOv .tSub{font-size:12px;color:#8aa0ab;text-align:center;margin:0 0 12px;line-height:1.5}
+#tourOv .tAdd{display:flex;gap:8px}#tourOv .tAdd input{flex:1;min-width:0}
+#tourOv .tAdd button{margin-top:0;min-width:64px}
+#tourOv .tChips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+#tourOv .tChip{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:18px;font-weight:700;font-size:14px}
+#tourOv .tChip button{min-height:26px;min-width:26px;padding:0;border-radius:13px;font-size:14px;margin:0;border:0;background:#1a2028;color:#fff}
+#tourOv .tMatch{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:15px}
+#tourOv .tMatch .tv{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tourOv .tMatch .tv small{display:block;font-size:12px;color:#8aa0ab}
+#tourOv .tMatch .tw{color:var(--accent);font-weight:800}
+#tourOv .tMatch .lo{opacity:.5;text-decoration:line-through}
+#tourOv .tMatch button{margin-top:0;min-height:38px;padding:0 14px;font-size:14px;width:auto;flex:0 0 auto}
+#tourOv table{width:100%;border-collapse:collapse;margin-top:8px;font-size:15px}
+#tourOv th{font-size:11px;color:#8aa0ab;text-align:left;font-weight:600;padding:4px}
+#tourOv td{padding:9px 4px;border-bottom:1px solid var(--line)}
+#tourOv td.r{width:34px;font-weight:800;text-align:center}#tourOv td.p{text-align:right;font-weight:800;color:var(--accent)}
+#tourOv td small{display:block;color:#8aa0ab;font-size:11px}
+#tourOv .champ{text-align:center;font-size:44px;animation:winPop .9s cubic-bezier(.2,1.6,.4,1) both}
+#tourOv .btnrow{display:flex;gap:8px;margin-top:14px}#tourOv .btnrow button{margin-top:0}
 </style>
 </head>
 <body>
@@ -257,6 +279,7 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
       <button class="start alt" id="joinBtn">Join a friend’s room</button>
     </div>
     <button class="start alt hofBtn" id="hofBtn">🏆 Toppers</button>
+    <button class="start alt hofBtn" id="tourBtn">🏟 Group tournament</button>
     <small id="sumLine"></small>
   </div>
 </main>
@@ -306,6 +329,9 @@ s.addEventListener('click',hide);setTimeout(hide,2400);});</script>
   </div></div>
 </main>
 
+<div class="overlay" id="tourOv" hidden style="z-index:30">
+  <div class="dialog" id="tourBox"></div>
+</div>
 <div class="overlay" id="hofOv" hidden style="z-index:30">
   <div class="dialog">
     <h3>🏆 Toppers</h3>
@@ -866,10 +892,12 @@ const P=[0,1].map(i=>{
 let G=null,tick=null,gid=0;
 const names=()=>[S.names[0]||'Player 1',S.names[1]||'Player 2'];
 
-function show(which){$('#setup').hidden=which!=='setup';$('#game').hidden=which!=='game';$('#lobby').hidden=which!=='lobby';}
+let T=null;
+function show(which){if(T&&T.playing&&which==='setup'){tBack();return;}$('#setup').hidden=which!=='setup';$('#game').hidden=which!=='game';$('#lobby').hidden=which!=='lobby';}
 function clearAll(){clearInterval(tick);tick=null;if(G){clearTimeout(G.to);}}
 
 function startGame(){
+  if(!(T&&T.playing))$('#againBtn').textContent='Play again';
   if(!S.sel.length){toast('Pick at least one concept');return;}
   save();clearAll();
   const nm=names();if(S.net==='bot')nm[1]='🤖 '+BOTN[S.bot];
@@ -1074,6 +1102,90 @@ $('#hofBtn').addEventListener('click',()=>{hofTab=1;hofRender();$('#hofOv').hidd
 $('#hofClose').addEventListener('click',()=>{$('#hofOv').hidden=true;});
 $('#hofT1').addEventListener('click',()=>{hofTab=1;hofRender();});
 $('#hofT2').addEventListener('click',()=>{hofTab=2;hofRender();});
+/* ---------- group tournament (knockout on one phone) ---------- */
+const TK='mathduel.tour.v1';
+let TL=[];
+try{T=JSON.parse(localStorage.getItem(TK));if(T&&T.phase){T.playing=false;}else T=null;}catch(e){T=null;}
+const tSave=()=>{try{T?localStorage.setItem(TK,JSON.stringify(T)):localStorage.removeItem(TK);}catch(e){}};
+const tRoundsFor=n=>Math.max(1,Math.ceil(Math.log2(n)));
+function tMake(alive){
+  const a=shuffle(alive);let bye=null;
+  if(a.length%2){const c=a.filter(i=>!T.players[i].bye);const pool=c.length?c:a;bye=pool[Math.floor(Math.random()*pool.length)];a.splice(a.indexOf(bye),1);}
+  T.m=[];for(let i=0;i<a.length;i+=2)T.m.push({a:a[i],b:a[i+1],win:null,d:0});
+  if(bye!=null){T.players[bye].bye=1;T.m.push({a:bye,b:null,win:bye,bye:1,d:0});}
+}
+function tStart(){
+  T={phase:'bracket',round:1,total:tRoundsFor(TL.length),players:TL.map(n=>({n,pts:0,w:0,out:0,bye:0})),playing:false,orig:S.names.slice(),m:[]};
+  tMake(T.players.map((_,i)=>i));tSave();tRender();
+}
+function tDoneRound(){
+  if(T.m.some(m=>m.win==null))return;
+  const win=T.m.map(m=>m.win);
+  T.players.forEach((p,i)=>{if(!p.out&&!win.includes(i)&&T.m.some(m=>m.a===i||m.b===i))p.out=T.round;});
+  if(win.length===1){T.champ=win[0];T.phase='final';T.players[win[0]].out=T.round+1;}
+  else{T.round++;tMake(win);}
+}
+function tFinish(w){
+  const m=T.m[T.cur],A=T.players[m.a],B=T.players[m.b];
+  A.pts+=G.correct[0]-G.wrong[0];B.pts+=G.correct[1]-G.wrong[1];
+  if(w===-1){m.d++;$('#againBtn').textContent='Rematch (draw!)';$('#againBtn').hidden=false;$('#setBtn').textContent='Back to bracket';}
+  else{m.win=w===0?m.a:m.b;T.players[m.win].w++;tDoneRound();$('#againBtn').hidden=true;$('#setBtn').textContent=T.phase==='final'?'See final ranking ➜':'Continue ➜';}
+  tSave();
+}
+function tPlay(i){
+  const m=T.m[i];if(!m||m.win!=null)return;
+  S.net='local';T.cur=i;T.playing=true;S.names=[T.players[m.a].n,T.players[m.b].n];
+  $('#tourOv').hidden=true;startGame();
+}
+function tBack(){
+  T.playing=false;S.names=T.orig.slice();$('#againBtn').textContent='Play again';save();tSave();
+  show('setup');renderSetup();tRender();$('#tourOv').hidden=false;
+}
+const tStandings=()=>T.players.map((p,i)=>({i,...p})).sort((x,y)=>(y.out-x.out)||(y.pts-x.pts)||(y.w-x.w)||x.n.localeCompare(y.n));
+function tConfetti(box){
+  const cols=['#00d1ff','#ffffff','#ffd60a','#22c55e','#ff4d8d','#a78bfa'];
+  for(let k=0;k<40;k++){const c=document.createElement('i');c.className='confetti';
+    c.style.cssText='left:'+(Math.random()*100)+'%;background:'+cols[k%cols.length]+';--d:'+(2.4+Math.random()*2)+'s;--dl:'+(Math.random()*1.2)+'s;--x:'+(Math.random()*120-60)+'px;--r:'+(360+Math.random()*540)+'deg';box.appendChild(c);}
+}
+function tRender(){
+  const box=$('#tourBox');
+  if(!T){
+    box.innerHTML=`<h3>🏟 Group tournament</h3>
+      <p class="tSub">Everyone plays a quick Duel on this phone, two at a time. Winners go through to the next round until one champion is left. At the end you see the full ranking, top to bottom.<br>Uses your current class, level and game mode.</p>
+      <div class="tAdd"><input id="tIn" maxlength="14" placeholder="Player name" autocomplete="off"><button class="main" id="tAddBtn">Add</button></div>
+      <div class="tChips">${TL.map((n,i)=>`<span class="tChip">${hesc(n)}<button data-rm="${i}" aria-label="Remove">✕</button></span>`).join('')||'<span class="tSub" style="margin:0">Add at least 2 players.</span>'}</div>
+      <p class="tSub">${TL.length} player${TL.length===1?'':'s'}${TL.length>1?' · '+tRoundsFor(TL.length)+' round'+(tRoundsFor(TL.length)>1?'s':''):''}</p>
+      <div class="btnrow"><button id="tClose">Close</button><button class="main" id="tStartBtn" ${TL.length<2?'disabled':''}>Start tournament</button></div>`;
+    const add=()=>{const v=$('#tIn').value.trim().slice(0,14);if(!v)return;if(TL.some(n=>n.toLowerCase()===v.toLowerCase())){toast('That name is already added');return;}if(TL.length>=64){toast('Maximum 64 players');return;}TL.push(v);tRender();$('#tIn').focus();};
+    $('#tAddBtn').onclick=add;$('#tIn').onkeydown=e=>{if(e.key==='Enter')add();};
+    box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{TL.splice(+b.dataset.rm,1);tRender();});
+    $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};
+    $('#tStartBtn').onclick=tStart;return;
+  }
+  if(T.phase==='final'){
+    const st=tStandings(),ch=T.players[T.champ];
+    const rows=st.map((p,k)=>`<tr><td class="r">${['🥇','🥈','🥉'][k]||k+1}</td><td>${hesc(p.n)}<small>${p.i===T.champ?'Champion':p.out===T.round?'Lost the final':'Out in round '+p.out}${p.bye?' · had a bye':''} · ${p.w} win${p.w===1?'':'s'}</small></td><td class="p">${p.pts}</td></tr>`).join('');
+    box.innerHTML=`<div class="champ">🏆</div><h3>${hesc(ch.n)} is the champion!</h3><p class="tSub">Final ranking, top to bottom. Points = total correct − wrong across all matches.</p>
+      <table><thead><tr><th></th><th>Player</th><th style="text-align:right">Points</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="btnrow"><button id="tCopy">Copy results</button><button class="main" id="tNew">New tournament</button></div><div class="btnrow"><button id="tClose">Close</button></div>`;
+    tConfetti(box);
+    $('#tCopy').onclick=()=>{const txt='Triods Math Duel tournament\n'+st.map((p,k)=>(k+1)+'. '+p.n+' — '+p.pts+' pts').join('\n');try{navigator.clipboard.writeText(txt).then(()=>toast('Results copied'),()=>toast('Could not copy'));}catch(e){toast('Could not copy');}};
+    $('#tNew').onclick=()=>{T=null;TL=[];tSave();tRender();};
+    $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};return;
+  }
+  const left=T.m.filter(m=>m.win==null).length;
+  box.innerHTML=`<h3>🏟 Round ${T.round} of ${T.total}</h3>
+    <p class="tSub">${left} match${left===1?'':'es'} left in this round${T.round===T.total?' — this is the final!':''}. Lay the phone flat between the two players.</p>
+    ${T.m.map((m,i)=>{const A=T.players[m.a],B=m.b==null?null:T.players[m.b];
+      if(m.bye)return `<div class="tMatch"><span class="tv">${hesc(A.n)}<small>Bye — goes straight through</small></span><span class="tw">✔</span></div>`;
+      if(m.win!=null)return `<div class="tMatch"><span class="tv"><span class="${m.win===m.a?'tw':'lo'}">${hesc(A.n)}</span> vs <span class="${m.win===m.b?'tw':'lo'}">${hesc(B.n)}</span></span><span class="tw">✔</span></div>`;
+      return `<div class="tMatch"><span class="tv">${hesc(A.n)} vs ${hesc(B.n)}${m.d?'<small>Drawn — play again</small>':''}</span><button class="main" data-play="${i}">▶ Play</button></div>`;}).join('')}
+    <div class="btnrow"><button id="tEnd">End tournament</button><button id="tClose">Close</button></div>`;
+  box.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>tPlay(+b.dataset.play));
+  $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};
+  $('#tEnd').onclick=()=>{if(confirm('End this tournament? The standings will be lost.')){T=null;TL=[];tSave();tRender();}};
+}
+$('#tourBtn').addEventListener('click',()=>{if(S.net!=='local'){S.net='local';save();renderSetup();}tRender();$('#tourOv').hidden=false;});
 const calcHTML=(c,w)=>`<div class="calc">✓ ${c} correct − ✗ ${w} wrong = <b>${c-w}</b> points</div>`;
 function endGame(){
   clearAll();G.phase='end';
@@ -1096,6 +1208,7 @@ function endGame(){
   $('#barWrap').hidden=true;$('#pauseBtn').hidden=true;$('#qn0').hidden=true;$('#qn1').hidden=true;$('#resBtns').hidden=false;
   sGood();setTimeout(()=>sGood(),300);
   if(w!==-1&&!(S.net==='bot'&&w===1))celebrate(w);
+  if(T&&T.playing)tFinish(w);
 }
 
 function pauseGame(){
