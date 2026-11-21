@@ -14,6 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Triods Math Duel</title>
 <style>
 :root{
@@ -166,11 +167,19 @@ h1{font-size:26px;margin:4px 0 2px;letter-spacing:-.3px}
 #hofOv .empty{text-align:center;color:#8aa0ab;padding:18px 0;font-size:14px}
 .solo .panel.p2{transform:none}.solo #panel1 .opt{pointer-events:none}
 #cardBot .help{margin:10px 0 0;font-size:13px}
-#tourOv .dialog{max-width:400px;max-height:90vh;overflow:auto;text-align:left;position:relative}
+#tourOv{align-items:flex-start;padding:12px}
+#tourOv .dialog{max-width:400px;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:auto;text-align:left;position:relative;-webkit-overflow-scrolling:touch}
+#tourOv .tAdd{position:sticky;top:-22px;z-index:2;background:var(--surface);padding:8px 0}
+#tourOv input{width:100%;min-height:50px;border:1.5px solid var(--accent);border-radius:12px;background:var(--bg);color:var(--ink);padding:0 14px;font:inherit;font-size:18px;-webkit-user-select:text;user-select:text}
 #tourOv h3{text-align:center;margin-bottom:4px}
 #tourOv .tSub{font-size:12px;color:#8aa0ab;text-align:center;margin:0 0 12px;line-height:1.5}
 #tourOv .tAdd{display:flex;gap:8px}#tourOv .tAdd input{flex:1;min-width:0}
-#tourOv .tAdd button{margin-top:0;min-width:64px}
+#tourOv .tAdd{align-items:stretch}#tourOv .tAdd input{flex:1 1 0;width:auto}
+#tourOv .tAdd button{margin-top:0;min-width:80px;min-height:50px;width:auto;flex:0 0 auto}
+#tourOv .tChip button{width:26px;min-height:26px;display:flex;align-items:center;justify-content:center;margin:0}
+#tourOv .tChips .chip,#tourOv .row .chip{width:auto;margin-top:0;flex:0 1 auto}
+#tourOv .row .chip{flex:1 1 auto}
+#tourOv .btnrow button{flex:1 1 0;width:auto}
 #tourOv .tChips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 #tourOv .tChip{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:18px;font-weight:700;font-size:14px}
 #tourOv .tChip button{min-height:26px;min-width:26px;padding:0;border-radius:13px;font-size:14px;margin:0;border:0;background:#1a2028;color:#fff}
@@ -1185,14 +1194,14 @@ function tRender(){
   if(!T){
     box.innerHTML=`<h3>🏟 Group tournament</h3>
       <p class="tSub">Everyone plays a quick Duel on this phone, two at a time. Winners go through to the next round until one champion is left. At the end you see the full ranking, top to bottom.<br>Uses your current class, level and game mode.</p>
-      <div class="tAdd"><input id="tIn" maxlength="14" placeholder="Player name" autocomplete="off"><button class="main" id="tAddBtn">Add</button></div>
+      <div class="tAdd"><input id="tIn" maxlength="200" placeholder="Player name" autocomplete="off" autocapitalize="words" enterkeyhint="done"><button class="main" id="tAddBtn">Add</button></div>
       <div class="tChips">${TL.map((n,i)=>`<span class="tChip">${hesc(n)}<button data-rm="${i}" aria-label="Remove">✕</button></span>`).join('')||'<span class="tSub" style="margin:0">Add at least 2 players.</span>'}</div>
       <div class="tSub" style="margin:0 0 6px">Pairing</div>
       <div class="row" id="tPm"><button class="chip" data-pm="manual" aria-pressed="${TPM==='manual'}">I choose the pairs</button><button class="chip" data-pm="random" aria-pressed="${TPM==='random'}">Random</button></div>
       <p class="tSub" style="margin-top:10px">${TL.length} player${TL.length===1?'':'s'}${TL.length>1?' · '+tRoundsFor(TL.length)+' round'+(tRoundsFor(TL.length)>1?'s':''):''}</p>
       <div class="btnrow"><button id="tClose">Close</button><button class="main" id="tStartBtn" ${TL.length<2?'disabled':''}>Start tournament</button></div>`;
-    const add=()=>{const v=$('#tIn').value.trim().slice(0,14);if(!v)return;if(TL.some(n=>n.toLowerCase()===v.toLowerCase())){toast('That name is already added');return;}if(TL.length>=64){toast('Maximum 64 players');return;}TL.push(v);tRender();$('#tIn').focus();};
-    $('#tAddBtn').onclick=add;$('#tIn').onkeydown=e=>{if(e.key==='Enter')add();};
+    const add=()=>{const raw=$('#tIn').value.split(/[,\n;]+/).map(x=>x.trim().slice(0,14)).filter(Boolean);if(!raw.length)return;let dup=0;raw.forEach(v=>{if(TL.some(n=>n.toLowerCase()===v.toLowerCase())||TL.length>=64){dup++;return;}TL.push(v);});if(dup)toast(dup+' name'+(dup>1?'s':'')+' skipped (already added)');tRender();$('#tIn').focus();};
+    $('#tAddBtn').onclick=add;$('#tIn').addEventListener('focus',()=>setTimeout(()=>{try{$('#tIn').scrollIntoView({block:'center'});}catch(e){}},300));$('#tIn').onkeydown=e=>{if(e.key==='Enter')add();};
     box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{TL.splice(+b.dataset.rm,1);tRender();});
     $('#tClose').onclick=()=>{$('#tourOv').hidden=true;};
     box.querySelectorAll('[data-pm]').forEach(b=>b.onclick=()=>{TPM=b.dataset.pm;tRender();});
